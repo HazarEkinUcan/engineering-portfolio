@@ -1,0 +1,18 @@
+# Localized 404 handling.
+#
+# The root 404 needs no rule. Astro emits it as a flat `dist/404.html`, which
+# Netlify serves automatically, with a real 404 status, for any path that does
+# not exist. The localized ones build as directories instead
+# (`dist/tr/404/index.html`, `dist/de/404/index.html`), and Netlify's automatic
+# handling only ever looks for `404.html`, so each one needs a rule.
+#
+# These are rewrites, not redirects. The status is 404 rather than 3xx, so
+# Netlify serves that file's content under the URL the visitor actually asked
+# for: the bad path stays in the address bar and the response really is 404.
+#
+# Neither rule is forced (no trailing `!`), and an unforced rule applies only
+# when no file exists at the requested path. `/tr/about`, every project page
+# and every asset therefore resolve normally and are never shadowed.
+
+/tr/*   /tr/404/index.html   404
+/de/*   /de/404/index.html   404

@@ -1,0 +1,17 @@
+# Static Astro build.
+#
+# There is no adapter, no SSR, no functions and no edge functions: `astro build`
+# writes a plain directory of HTML, CSS, JS and images, and Netlify serves it as
+# files. Redirects live in `public/_redirects` and headers in `public/_headers`,
+# both of which Astro copies verbatim into `dist/`, so they stay next to the
+# site they describe rather than being split across two config formats.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # package.json asks only for ">=20.11", which leaves the choice of runtime up
+  # to whatever Netlify defaults to that week. Pinning it to the major this site
+  # is actually developed and tested on removes that variable from the build.
+  NODE_VERSION = "22"
