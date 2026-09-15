@@ -1,0 +1,284 @@
+---
+order: 2
+status: published
+title: VR Prosodic Speech Analysis System
+subtitle: A completed system that measures how a person speaks inside a VR exercise, normalised against their own calm and urgent references.
+summary: A Python engine records speech inside a VR exercise, transcribes it, extracts six prosodic features and scores them against the speaker's own calm and high-urgency references. A FastAPI service connects it to the Quest headset. The part I care about most is when it refuses to score.
+roleLabel: Python engine and API
+context: Personal project
+period: '2026'
+stack:
+  - Python
+  - FastAPI
+  - Faster-Whisper
+  - Praat / parselmouth
+  - librosa
+evidence:
+  - code
+  - architecture
+  - system-design
+role: >-
+  I designed and wrote the Python analysis engine: the recording layer, the
+  Faster-Whisper transcription and word timing, the prosodic feature extraction
+  built on Praat and librosa, the two-anchor personal calibration model, the
+  scoring, the quality gates and the session logging. I also wrote the FastAPI
+  service that the VR layer calls. Every commit in the repository is mine. The
+  system runs end to end on a single Windows PC with the headset connected over
+  Quest Link.
+limits: >-
+  A prosodic score says how far someone's speech has moved along their own
+  range between calm and urgent. It does not say why. Tiredness, a cold, a
+  raised voice across a noisy room and genuine urgency all push the same
+  features in the same direction, and nothing in the signal separates them.
+  The score is explicitly not a clinical measure. The code says so where it
+  prints a result, and I would keep saying it anywhere this was used. The
+  syllable count behind the rate features is a vowel-count approximation for
+  Turkish, which is good enough to compare a speaker against themselves and not
+  good enough to compare speakers against each other.
+glance:
+  what: A system that measures vocal arousal during a VR exercise and shows a personally normalised score in real time.
+  built: The Python analysis engine and the FastAPI service the VR layer drives.
+chapters:
+  - { id: 'problem', label: 'How someone speaks' }
+  - { id: 'anchors', label: 'Two anchors' }
+  - { id: 'refuse', label: 'Refusing to lie' }
+  - { id: 'system', label: 'The finished system' }
+  - { id: 'limits', label: 'Where the limits are' }
+card:
+  media: ../../../assets/projects/prosodic-vr/vr-concept-card.jpg
+  alt: Concept illustration. A VR headset and two hand controllers resting on a pale surface, with a speech waveform running across the foreground.
+  credit: Concept illustration, not project hardware
+seo:
+  description: A completed system that scores how a person speaks inside a VR exercise against their own calm and urgent references. Python engine, FastAPI bridge.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+import CalibrationDiagram from '../../../components/diagrams/CalibrationDiagram.astro';
+import ArchitectureDiagram from '../../../components/diagrams/ArchitectureDiagram.astro';
+import QualityGateDiagram from '../../../components/diagrams/QualityGateDiagram.astro';
+import Figure from '../../../components/content/Figure.astro';
+import ThemeFigure from '../../../components/content/ThemeFigure.astro';
+import questUnity from '../../../assets/projects/prosodic-vr/quest-unity-collage.jpg';
+import speechLight from '../../../assets/projects/prosodic-vr/speech-features-light.svg?url';
+import speechDark from '../../../assets/projects/prosodic-vr/speech-features-dark.svg?url';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Measuring how someone speaks"
+  deck="Inside a VR exercise, the way someone talks carries information the task score does not capture."
+>
+
+If someone is working through a simulated procedure in VR, the system already
+knows whether they completed the steps. It knows nothing about how they sounded
+doing it. Speech carries that: pitch, loudness, tempo, where the pauses fall. I
+wanted to turn that into a number while the exercise is still running.
+
+A fixed threshold does not work. If I say that anything above 180 Hz or 70 dB
+counts as elevated, the system ends up measuring the person instead of their
+state. A naturally loud speaker crosses that line while calm. A quiet one never
+crosses it at all, even under real pressure. Any absolute acoustic threshold is a
+statement about voices in general, and what I wanted to detect was a change in
+one voice.
+
+<SpecList
+  items={[
+    { key: 'Hardware', value: 'One Windows PC, Meta Quest 3 over Quest Link, audio from the Oculus virtual microphone at 16 kHz mono' },
+    { key: 'Interaction', value: 'One controller button: hold to record, release to analyse' },
+    { key: 'Boundary', value: 'No audio analysis reimplemented in C#. One implementation, in Python' },
+    { key: 'Latency', value: 'Analysis returns while the exercise is still running' },
+    { key: 'Discipline', value: 'Return nothing before returning a bad score' },
+  ]}
+/>
+
+</Chapter>
+
+<Chapter
+  id="anchors"
+  index="02"
+  title="Two anchors instead of one threshold"
+  deck="Every speaker gets their own scale, with both ends measured from their own voice."
+>
+
+Before the exercise, each user records two short sentences. The first is spoken
+normally and becomes their **baseline**. The second is spoken with urgency and
+becomes their **upperline**. For each feature, the distance between those two
+recordings is that person's own range.
+
+Everything after that is measured as progress along that range: zero at the
+baseline, one at the upperline. A loud speaker and a quiet speaker who have each
+moved the same proportion of their own way toward urgency get the same score.
+
+<CalibrationDiagram />
+
+The detail I am most pleased with is that the gap is signed. Most people speak
+faster under urgency, so their articulation rate upperline sits above their
+baseline. Some speak more slowly and deliberately instead. The formula does not
+treat that as an error to correct. It keeps whichever direction that person
+actually showed. The gap is simply negative, and progress along it is computed
+the same way.
+
+<CodeExcerpt
+  file="app_speech_integrated.py · compare_with_two_anchors()"
+  caption="Progress along a personal gap. Negative gaps work unchanged; movement the other way scores zero; one feature is capped so it cannot dominate."
+>
+{`raw_progress = (
+    current_number - baseline_number
+) / gap
+
+`}<span class="cm">{`# Baseline'ın ters yönündeki değişim panik puanı üretmez.`}</span>{`
+`}<span class="hl">{`score_progress = max(raw_progress, 0.0)`}</span>{`
+
+`}<span class="cm">{`# Upperline'ı aşmak mümkündür. 1.25 sınırı, tek özelliğin`}</span>{`
+`}<span class="cm">{`# bütün skoru aşırı şişirmesini engeller.`}</span>{`
+`}<span class="hl">{`score_progress = min(score_progress, 1.25)`}</span>{`
+
+weighted_progress += score_progress * weight
+used_weight += weight`}
+</CodeExcerpt>
+
+Six features carry the score. Each has a weight and a minimum gap. The minimum
+gap is the smallest separation between a person's two anchors that still counts
+as a real difference instead of noise.
+
+<div class="table-scroll">
+  <table class="data-table">
+    <caption class="visually-hidden">
+      The six scored prosodic features, with their weight in the final score and
+      the minimum separation required between a speaker's two calibration
+      anchors.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Feature</th>
+        <th scope="col">Weight</th>
+        <th scope="col">Minimum gap</th>
+        <th scope="col">Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">F0 median</th><td class="num">0.25</td><td class="num">5 Hz</td><td>Praat pitch</td></tr>
+      <tr><th scope="row">Mean intensity</th><td class="num">0.20</td><td class="num">2 dB</td><td>Praat intensity</td></tr>
+      <tr><th scope="row">Articulation rate</th><td class="num">0.20</td><td class="num">0.30 syll/s</td><td>Whisper word timing</td></tr>
+      <tr><th scope="row">Max intensity</th><td class="num">0.15</td><td class="num">3 dB</td><td>Praat intensity</td></tr>
+      <tr><th scope="row">Pitch range (p90−p10)</th><td class="num">0.10</td><td class="num">5 Hz</td><td>Praat pitch</td></tr>
+      <tr><th scope="row">Pause ratio</th><td class="num">0.10</td><td class="num">0.03</td><td>Whisper word timing</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<ThemeFigure
+  light={speechLight}
+  dark={speechDark}
+  width={2400}
+  height={1720}
+  alt="A recorded speech waveform above a timeline of the individual words the transcriber located within it, with pitch summary figures beneath."
+  caption="One real recording through the engine: the captured waveform, the word boundaries Faster-Whisper returned, and the pitch figures extracted from it. This session was captured on a laptop microphone, not through the headset, and it is a single utterance. It shows what the measurement path produces. It is not a validation of it."
+  wide
+/>
+
+Timing comes from Faster-Whisper's word-level timestamps instead of energy based
+voice activity detection. Energy VAD cannot tell a pause from a quiet room, and a
+noisy headset microphone makes it worse. Word boundaries from the transcript are
+a much better basis for saying where speech actually stopped. Syllables are
+approximated by counting Turkish vowels. That is a documented approximation and
+not a real syllabifier, and it is good enough for comparing a speaker with
+themselves.
+
+The system is deliberately built in two layers with an HTTP bridge between them.
+
+<ArchitectureDiagram />
+
+Keeping every measurement in Python is what makes that split worth having. Praat,
+librosa and Faster-Whisper have no equivalent in C#. Porting a subset of them into
+the VR project would have created a second implementation of the measurement, and
+I would have had to keep the two in agreement.
+
+</Chapter>
+
+<Chapter
+  id="refuse"
+  index="03"
+  title="Making the score refuse to lie"
+  deck="Most of the engineering here is in the paths that return nothing."
+>
+
+A number on a panel gets believed. That is a good reason to be careful about when
+one is produced at all. The gates below are the part of this system I would most
+want to be judged on.
+
+<QualityGateDiagram />
+
+The feature level gate is the one that matters most. If a person's baseline and
+upperline recordings did not separate on a given feature, that feature carries no
+information about them. Maybe they spoke at the same pitch both times. Including
+it would add noise dressed as signal. So it is dropped, and the score is computed
+from the features that did separate, reweighted.
+
+That can cascade. Drop enough features and there is not enough profile left to
+score anything. Below two surviving features, or 0.40 of combined weight,
+calibration is rejected outright and the user records the anchors again.
+
+Recording quality is checked before any of that. Clipping at a peak of 0.99 or
+above, a peak below 0.02, or fewer than 20% voiced frames all raise a warning.
+There is a subtler one too. If the voice activity detector reports that 98% or
+more of the window is active speech, that is usually a noisy room being heard as
+continuous talking, and the timing features derived from it are not trustworthy.
+
+<CodeExcerpt
+  file="baseline_manager.py · evaluate_recording_quality()"
+  caption="The room, not the speaker, is what this check is looking for."
+>
+{`if speech_window > 0:
+    active_ratio = active_duration / speech_window
+
+    `}<span class="hl">{`if active_ratio >= 0.98:`}</span>{`
+        warnings.append(
+            "Kayıdın neredeyse tamamı aktif konuşma olarak algılandı. "
+            "Gürültü nedeniyle VAD/sessizlik tespiti güvenilir olmayabilir."
+        )`}
+</CodeExcerpt>
+
+There is one more check I like. The calibration phrase itself is verified: the
+transcript of what the person said is compared against the sentence they were
+asked to say. A baseline recorded while someone was talking to the person next to
+them should not silently become the reference every later score is measured
+against.
+
+</Chapter>
+
+<Chapter
+  id="system"
+  index="04"
+  title="The finished system"
+  deck="Button to score, end to end, on one machine."
+>
+
+<SystemPanel
+  title="The system, end to end"
+  rows={[
+    'Captures audio from the Quest microphone over Quest Link',
+    'Controller button drives <code>/start</code> and <code>/stop</code> on the FastAPI bridge',
+    'Returns transcript and word-level timing from Faster-Whisper',
+    'Extracts six prosodic features per recording: F0 median and range, mean and max intensity, articulation rate, pause ratio',
+    'Builds a personal calibration profile from the baseline and upperline anchors, and validates it before use',
+    'Returns a 0-100 personally normalised score to the VR panel',
+    'Writes per-utterance JSON, a session CSV and a session report for later analysis',
+  ]}
+/>
+
+<Figure
+  src={questUnity}
+  alt="Three photographs: working on the analysis code at a laptop, the Quest 3 headset being worn with the Unity scene on a wall display, and the project poster presented in the laboratory."
+  caption="The parts that do not appear in a code listing: the analysis engine being worked on, the headset in use with the Unity scene running, and the project presented. The example figures visible on the poster are illustrative, not measured results."
+/>
+
+The engine runs without the headset attached. That is how I developed it and how
+it stays testable: a WAV file and a phrase are enough to exercise the whole
+measurement path. The VR layer only ever triggers a recording and displays what
+comes back.
+
+</Chapter>

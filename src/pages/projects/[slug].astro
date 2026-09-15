@@ -1,0 +1,28 @@
+---
+import { render } from 'astro:content';
+import Project from '../../layouts/Project.astro';
+import Ongoing from '../../layouts/Ongoing.astro';
+import { DEFAULT_LOCALE } from '../../i18n/locales';
+import { projectRoutes, warnOnWorkingTitle, type ProjectRouteProps } from '../../i18n/routes';
+
+export async function getStaticPaths() {
+  const routes = await projectRoutes(DEFAULT_LOCALE);
+  return routes.map((route) => ({ params: { slug: route.slug }, props: route.props }));
+}
+
+const props = Astro.props as ProjectRouteProps;
+const { Content } = await render(props.entry);
+warnOnWorkingTitle(props);
+---
+
+{
+  props.kind === 'ongoing' ? (
+    <Ongoing locale={props.locale} slug={props.slug} project={props.entry}>
+      <Content />
+    </Ongoing>
+  ) : (
+    <Project locale={props.locale} slug={props.slug} project={props.entry} next={props.next}>
+      <Content />
+    </Project>
+  )
+}

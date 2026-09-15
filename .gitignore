@@ -1,0 +1,20 @@
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# environment
+.env
+.env.production
+
+# editor / OS
+.DS_Store
+.vscode/
+*.log
+npm-debug.log*
+
+# local scratch (screenshot harness, parked files)
+.trash/
+.verify/

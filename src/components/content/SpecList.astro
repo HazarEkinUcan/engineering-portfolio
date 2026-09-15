@@ -1,0 +1,17 @@
+---
+interface Props {
+  items: { key: string; value: string }[];
+}
+const { items } = Astro.props;
+---
+
+<ul class="spec reveal" role="list">
+  {
+    items.map((item) => (
+      <li>
+        <span class="spec__key">{item.key}</span>
+        <span class="spec__value">{item.value}</span>
+      </li>
+    ))
+  }
+</ul>

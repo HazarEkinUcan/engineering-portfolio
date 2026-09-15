@@ -1,0 +1,266 @@
+---
+order: 2
+status: ongoing
+title: Local-First Engineering Assistant
+subtitle: Ein Assistent, der auf meinem eigenen Rechner arbeiten soll. Die Idee ist ein kleines lokales Modell, das passende Werkzeuge nutzt, statt alles selbst wissen zu müssen.
+summary: Ein lokaler KI-Assistent für Technik und Alltagsaufgaben am Rechner. Geplant ist ein kleines Modell mit Python-Tools, Datei-Retrieval, Webrecherche und kontrolliertem Computerzugriff. Stärkere Cloud-Modelle sollen erst helfen, wenn das lokale System wirklich nicht weiterkommt.
+updated: September 2026
+statusLine: Architekturrecherche und Planung · lokales Modell, Werkzeugsystem und Hardware-Optionen werden geprüft
+context: Eigenes Projekt
+started: Sep 2026
+focus: Agentenarchitektur, Tool-Entwicklung, Berechtigungen
+targetLine: Lokales Modell · Werkzeugnutzung · Cloud-Unterstützung bei Bedarf
+targets:
+  - key: Lokal zuerst
+    value: Routineaufgaben möglichst zuerst auf meinem Rechner lösen, bevor Daten nach außen gehen
+  - key: Werkzeugnutzung
+    value: Spezialisierte Tools zum Rechnen, Suchen und Ausführen von Aufgaben, damit das Modell nicht alles selbst wissen muss
+  - key: Lokaler Kontext
+    value: Mit ausgewählten Engineering-Dateien und Projektwissen über Retrieval arbeiten, statt ein Dateisystem in einen Prompt zu laden
+  - key: Rechtebasierter Zugriff
+    value: Lesen, Schreiben, Ausführen, Netzwerk und externes Modell sollen getrennte Berechtigungen sein
+  - key: Externe Unterstützung
+    value: Größere entfernte Modelle sollen erst befragt werden, wenn der lokale Versuch wirklich nicht gereicht hat
+  - key: Leistung messen
+    value: Latenz, Leistungsfähigkeit und Ressourcenbedarf werden nach der Umsetzung gemessen, nicht angenommen
+targetsNote: >-
+  Das sind Entwicklungsziele, kein Verhalten, das das System schon zeigt.
+  Nichts davon ist umgesetzt oder gemessen.
+currentStatus:
+  - 'Architekturrecherche und Planung laufen. Nichts ist umgesetzt.'
+  - 'Die Werkzeugarchitektur wird definiert: welche Tools nötig sind, wie das Modell sie aufruft und worauf jedes zugreifen darf.'
+  - 'Optionen für lokales Modell und Runtime werden untersucht. Weder Modell noch Quantisierung, Kontextlänge oder Runtime sind ausgewählt.'
+  - 'Eigene Edge-Hardware wird erwogen, ist aber nicht gekauft. Ein NVIDIA Jetson Orin Nano ist eine mögliche Plattform; ebenso gut kann das System auf dem Rechner laufen, den ich schon habe.'
+  - 'Umsetzung und Benchmarks stehen noch aus. Es gibt bisher keine Zahlen zu Latenz, Leistungsfähigkeit oder Stromverbrauch.'
+statusNote: >-
+  Ich aktualisiere diese Seite, während das Projekt vorankommt. Werte zu
+  Latenz, Leistungsfähigkeit und Stromverbrauch ergänze ich, sobald es ein
+  laufendes System gibt, das ich vermessen kann.
+chapters:
+  - { id: 'why', label: 'Warum ich ihn baue' }
+  - { id: 'local-first', label: 'Lokal zuerst' }
+  - { id: 'tools', label: 'Werkzeuge statt Modellgröße' }
+  - { id: 'context', label: 'Lokaler Kontext' }
+  - { id: 'permissions', label: 'Rechtebasierter Zugriff' }
+  - { id: 'escalation', label: 'Externe Modelle bei Bedarf' }
+  - { id: 'questions', label: 'Technische Fragen' }
+  - { id: 'status', label: 'Aktueller Stand' }
+media:
+  src: ../../../assets/projects/local-first-assistant/assistant-concept.png
+  alt: Konzeptillustration einer abstrakten, blassblauen Kugel als Symbol für die KI aus geschichteten Fäden, verbundenen Knoten und verzweigten Bögen auf transparentem Grund.
+  caption: 'Konzeptillustration: Oberfläche, Hardware und Systemarchitektur können sich während der Entwicklung noch ändern. Das ist kein Screenshot laufender Software.'
+  contain: true
+seo:
+  description: Laufendes Projekt für einen KI-Assistenten, der zuerst lokal arbeiten soll. Geplant sind ein kleines Modell, Tools, Retrieval und klar geregelte Zugriffsrechte.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+
+<Chapter
+  id="why"
+  index="01"
+  title="Warum ich ihn baue"
+  deck="Ich möchte verstehen, wie solche Systeme funktionieren, und herausfinden, wie viel meiner Arbeit auf dem eigenen Rechner bleiben kann."
+>
+
+KI gehört inzwischen zur technischen Arbeit und zum Programmieren, auch bei
+mir. Ich möchte nicht nur fertige Cloud-Produkte nutzen und auf ihr Verhalten
+vertrauen. Ich will solche Systeme gut genug verstehen, um eines selbst
+entwickeln und kontrollieren zu können. Ein vollständiger Assistent ist für mich ein guter Weg, lokale Inferenz,
+Agentenarchitektur, Retrieval, Routing und Berechtigungen gründlich zu lernen. Ich muss jede Entscheidung selbst treffen
+und dann mit ihr leben.
+
+Der zweite Grund ist praktischer. Eine Menge kleiner, routinemäßiger
+KI-gestützter Arbeit wird derzeit zu einer Anfrage an ein entferntes Rechenzentrum.
+Ich bin nicht überzeugt, dass das für alles nötig ist. Ein Modell lokal laufen zu
+lassen ist ebenfalls nicht umsonst. Es verbraucht Strom, und die Hardware hat
+einen eigenen Fußabdruck. Das ist also nicht die Behauptung, lokale Inferenz sei
+ökologisch automatisch die bessere Wahl, und ich habe nichts gemessen, was mir
+eine solche Aussage erlauben würde. Mich interessiert eine konkretere Frage: Wie viel meiner täglichen Arbeit
+mit KI lässt sich sinnvoll lokal erledigen, sodass ich externe Modelle nur
+für Aufgaben brauche, die ihre zusätzliche Leistungsfähigkeit erfordern?
+
+</Chapter>
+
+<Chapter
+  id="local-first"
+  index="02"
+  title="Lokal zuerst"
+  deck="Entscheidend ist die Reihenfolge: erst das lokale Modell, dann seine Tools. Ein externes Modell kommt nur hinzu, wenn beides nicht ausreicht."
+>
+
+Der Aufbau folgt einem Ablauf, nicht der Wahl einer einzelnen Komponente:
+
+<SystemPanel
+  title="Die Reihenfolge, in der das System arbeiten soll"
+  rows={[
+    'Das lokale Modell prüft die eingehende Anfrage.',
+    'Es greift zu den Werkzeugen, die die Aufgabe tatsächlich braucht.',
+    'Es versucht, die Aufgabe mit diesen Werkzeugen lokal zu lösen.',
+    'Reicht das wirklich nicht, kann es ein stärkeres externes Modell befragen.',
+    'Was zurückkommt, wird lokal genutzt, um die Arbeit zu Ende zu bringen.',
+  ]}
+/>
+
+Ein kleines Modell wird dadurch nicht so leistungsfähig wie die größten
+Cloud-Modelle. Das ist auch nicht mein Ziel. Ich möchte es so in ein System
+einbinden, dass es für jede Aufgabe die passende Ressource nutzen kann. Dann
+hängt nicht mehr alles allein von der Modellgröße ab.
+
+</Chapter>
+
+<Chapter
+  id="tools"
+  index="03"
+  title="Werkzeuge statt Modellgröße"
+  deck="Ein Modell, das einen Taschenrechner aufrufen kann, muss nicht im Kopf rechnen können. Dieser Gedanke, überall angewendet, wo er trägt, ist der Kern des Projekts."
+>
+
+Die zentrale technische Frage dieses Projekts lautet: **wie weit können gute
+Werkzeuge und ein guter Systementwurf die Grenzen eines kleineren Sprachmodells ausgleichen?**
+
+Ein großes Modell kann eine Frage beantworten, weil es mehr weiß. Ein gut
+aufgebautes System kann stattdessen die passende Informationsquelle oder das
+passende Werkzeug nutzen. Folgende Funktionen sind geplant; keine davon ist
+bisher umgesetzt:
+
+<SpecList
+  items={[
+    { key: 'Berechnung', value: 'Ein Rechnerwerkzeug, damit Arithmetik berechnet und nicht vorhergesagt wird' },
+    { key: 'Python', value: 'Python-Ausführung für Datenverarbeitung, Analyse und Skriptarbeit' },
+    { key: 'Code', value: 'Code ausführen und das Ergebnis nutzen, statt es zu raten' },
+    { key: 'Webrecherche', value: 'Ein Web-Tool für aktuelle Informationen, die nicht im Wissensstand des Modells enthalten sind' },
+    { key: 'Dokumentsuche', value: 'Retrieval über meine eigenen indexierten Projektdokumente' },
+    { key: 'Dateien', value: 'Lokale Dateien lesen und, wo erlaubt, anlegen und ändern' },
+    { key: 'Desktop', value: 'Interaktion mit ausgewählten Anwendungen, unter ausdrücklicher Erlaubnis' },
+  ]}
+/>
+
+Wenn das System eine Zahl braucht, soll es sie berechnen. Wenn es die Information
+von heute braucht, soll es nachsehen. Wenn es etwas aus einem meiner Projekte
+braucht, soll es diese Datei holen. Zu einem größeren Modell zu greifen soll die
+letzte Option sein, nicht die erste.
+
+</Chapter>
+
+<Chapter
+  id="context"
+  index="04"
+  title="Lokaler Kontext"
+  deck="Der Assistent soll meine Projekte verstehen können, ohne dass ich dafür die Dateien an einen externen Dienst senden muss."
+>
+
+Das meiste, was einen Assistenten für mich wirklich nützlich machen würde, liegt
+schon auf meinem Rechner: Projektordner, Code, Unimaterial, Notizen, Paper,
+technische Dokumente. Ein lokales System soll diese Unterlagen nutzen können, ohne sie dafür
+jeweils an einen externen Dienst zu senden.
+
+Ich will **nicht** einfach das gesamte Dateisystem in den Modellkontext
+laden. Das funktioniert nicht und wird bei wachsenden Datenmengen erst recht
+unpraktikabel. Stattdessen soll das System gezielt auswählen:
+
+<SystemPanel
+  title="Wie lokaler Kontext zum Modell kommen soll"
+  rows={[
+    'Lokale Indexierung über die Dateien, die ich verfügbar mache.',
+    'Abruf der Passagen oder Dokumente, die für die jeweilige Anfrage relevant sind.',
+    'Nur dieses Material kommt in den Kontext des lokalen Modells.',
+  ]}
+/>
+
+Ob das am Ende lokale Suche, Embeddings oder eine andere Retrieval-Architektur
+wird, ist noch offen. Ich habe weder eine Variante ausgewählt noch eine
+umgesetzt.
+
+</Chapter>
+
+<Chapter
+  id="permissions"
+  index="05"
+  title="Rechtebasierter Zugriff"
+  deck="Computerzugriff durch ein Modell bringt Sicherheitsrisiken mit sich. Die Zugriffsregeln möchte ich deshalb von Anfang an mitplanen."
+>
+
+Wenn der Assistent irgendwann Dateien lesen, Dateien schreiben, Code ausführen,
+ins Netz gehen und mit externen Diensten sprechen kann, dann ist ein
+Agent mit uneingeschränktem Systemzugriff der falsche Ansatz. Mich
+interessiert besonders, wie ich diesen Zugriff sinnvoll begrenzen kann,
+nicht nur, was der Assistent alles tun könnte.
+
+Das Konzept, das ich erkunden will, trennt Berechtigungen nach Art, sodass ein
+Werkzeug genau das anfragen muss, was es braucht:
+
+<SpecList
+  items={[
+    { key: 'Lesen', value: 'Dateien, Dokumente und Systemzustand einsehen' },
+    { key: 'Schreiben', value: 'Dateien anlegen oder ändern' },
+    { key: 'Ausführen', value: 'Python, Shell-Befehle oder Anwendungen starten' },
+    { key: 'Netzwerk', value: 'Das Web oder externe Dienste erreichen' },
+    { key: 'Externe KI', value: 'Eine Anfrage an ein entferntes Modell senden' },
+  ]}
+/>
+
+Riskantere Operationen sollen eine ausdrückliche Freigabe von mir verlangen
+können, bevor sie passieren, statt etwas zu sein, das ich hinterher in einem Log
+entdecke. Daten an ein externes Modell zu senden gilt als eigene Berechtigung, auf
+derselben Ebene wie das Ausführen von Code. Gemessen daran, was die Maschine
+verlässt, ist es das auch.
+
+Das ist eine geplante Architektur. Nichts davon ist umgesetzt, und der
+Mechanismus zur Durchsetzung dieser Regeln ist noch nicht entwickelt.
+
+</Chapter>
+
+<Chapter
+  id="escalation"
+  index="06"
+  title="Externe Modelle bei Bedarf"
+  deck="Externe Modelle sollen gezielt helfen, wenn das lokale System nicht weiterkommt. Sie sollen nicht unbemerkt die gesamte Arbeit übernehmen."
+>
+
+Manche Aufgaben werden ein kleines lokales Modell überfordern. Das zu
+ignorieren würde das System nur schlechter machen.
+Es soll also einen Ausweg geben: eine kontrollierte Anbindung, die eine
+Frage über eine API an ein stärkeres externes Modell stellen kann, etwa an Modelle
+von OpenAI, an Claude oder an Gemini.
+
+Entscheidend ist, wann diese Anbindung genutzt wird. Der Assistent soll
+Aufgaben zuerst lokal mit seinen Tools bearbeiten. Wenn er nicht
+weiterkommt, soll er erkennen können, dass er die Unterstützung eines
+stärkeren Modells braucht. Mit dessen Antwort soll er lokal weiterarbeiten.
+
+Eine Idee, die ich untersuchen will, ist, ob es sich bei einem wirklich schweren
+Problem lohnt, mehr als ein externes Modell zu befragen und die Antworten zu
+vergleichen. So könnte ich mehrere Einschätzungen vergleichen, statt mich auf eine
+einzige zu stützen. Das ist eine Idee, die ich untersuchen möchte, noch
+keine vorhandene Komponente.
+
+Nichts von diesem Routing ist umgesetzt. Zu entscheiden, *wann* ein System zu dem
+Schluss kommen sollte, dass es feststeckt, ist vermutlich schwerer, als den
+API-Aufruf einzubinden.
+
+</Chapter>
+
+<Chapter
+  id="questions"
+  index="07"
+  title="Technische Fragen"
+  deck="Diese Fragen halte ich vor der Umsetzung fest. So kann ich die Ergebnisse später daran prüfen, statt die Fragen nachträglich anzupassen."
+>
+
+- Wie weit können gute Werkzeuge und ein guter Systementwurf die Grenzen eines kleineren Sprachmodells ausgleichen?
+- Welche Aufgaben brauchen wirklich ein größeres entferntes Modell, und welche sehen nur so aus?
+- Woran soll ein Agent merken, dass er feststeckt? Zu erkennen, wann externe Hilfe
+  nötig ist, scheint schwieriger als die Anfrage selbst.
+- Wie kann lokaler Datei- und Computerzugriff nützlich sein, ohne dem Agenten
+  uneingeschränkte Kontrolle zu geben?
+- Was sollte eine ausdrückliche Freigabe durch einen Menschen verlangen, und was
+  würde so oft eine Freigabe verlangen, dass ich irgendwann ungelesen zustimme?
+- Wie viel von meinem Projektkontext kann realistisch vollständig lokal bleiben?
+- Was ist das praktische Gleichgewicht zwischen Leistungsfähigkeit des Modells, Latenz, Stromverbrauch und Hardwarekosten?
+- Wann ergibt lokale Inferenz wirklich Sinn, und wann ist ein entferntes Modell
+  einfach die bessere technische Entscheidung?
+
+</Chapter>

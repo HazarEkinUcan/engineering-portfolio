@@ -1,0 +1,48 @@
+---
+/**
+ * Shared wrapper for the six launch diagrams. A diagram may explain a method,
+ * a structure or a sequence. It never depicts a result that was not measured.
+ * design-spec.md §9.
+ */
+interface Props {
+  label: string;
+  caption: string;
+  wide?: boolean;
+}
+const { label, caption, wide = true } = Astro.props;
+---
+
+<figure class:list={['diagram', 'reveal', { bleed: wide }]}>
+  <p class="diagram__label label">{label}</p>
+  <div class="diagram__body ticks">
+    <slot />
+  </div>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .diagram {
+    margin-block: var(--space-9);
+  }
+
+  .diagram__label {
+    margin-block-end: var(--space-4);
+  }
+
+  .diagram__body {
+    position: relative;
+    padding: clamp(var(--space-5), 4vw, var(--space-8));
+    background: var(--surface);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius);
+  }
+
+  .diagram figcaption {
+    margin-block-start: var(--space-4);
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: var(--w-prose);
+  }
+</style>

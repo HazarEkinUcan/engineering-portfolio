@@ -1,0 +1,80 @@
+---
+/**
+ * What the finished system does, in the order it happens. Positive statements
+ * only — every row is supported by the code, and none of them is a
+ * performance claim. site-plan.md §5.4.
+ *
+ * Built to accept demonstration media later without being redesigned.
+ */
+interface Props {
+  title: string;
+  rows: string[];
+}
+const { title, rows } = Astro.props;
+---
+
+<div class="panel reveal ticks">
+  <h3 class="panel__title label">{title}</h3>
+  <ol class="panel__rows" role="list">
+    {
+      rows.map((row) => (
+        <li>
+          <span class="panel__node" aria-hidden="true" />
+          <span set:html={row} />
+        </li>
+      ))
+    }
+  </ol>
+</div>
+
+<style>
+  .panel {
+    position: relative;
+    margin-block: var(--space-8);
+    padding: var(--space-6);
+    background: var(--surface);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius);
+  }
+
+  .panel__title {
+    margin-block-end: var(--space-5);
+  }
+
+  .panel__rows {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .panel__rows li {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-4);
+    align-items: baseline;
+    padding-block: var(--space-4);
+    border-block-start: 1px solid var(--border-hairline);
+    font-size: var(--text-small);
+  }
+
+  .panel__rows li:first-child {
+    border-block-start: 0;
+    padding-block-start: 0;
+  }
+
+  .panel__node {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .panel :global(code) {
+    background: var(--surface-sunken);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>

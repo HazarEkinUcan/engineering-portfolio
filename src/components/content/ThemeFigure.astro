@@ -1,0 +1,75 @@
+---
+/**
+ * ThemeFigure.astro — a chart or diagram that ships as two files.
+ *
+ * The visual package's charts and diagrams have opaque backgrounds — #f6f5f2
+ * and #0f1113 — so a single file cannot sit on both of this site's themes. Each
+ * family therefore has a light and a dark SVG, and this component renders both
+ * and lets CSS decide which is shown, using exactly the same conditions as the
+ * rest of the theme system: the `data-theme` attribute set before first paint,
+ * falling back to prefers-color-scheme when the visitor has not chosen.
+ *
+ * Accessibility: the images themselves carry no alt. The frame is the labelled
+ * element, so the description survives whichever file is hidden — a hidden
+ * image is out of the accessibility tree, and its alt with it. The figcaption
+ * carries the detail either way.
+ *
+ * Both files are lazy and dimensioned, so neither competes with the page and
+ * neither shifts it.
+ */
+interface Props {
+  /** Emitted URLs — import the SVGs with ?url. */
+  light: string;
+  dark: string;
+  /** Accessible name for the figure. */
+  alt: string;
+  caption: string;
+  /** Intrinsic size, so the box is reserved before the file arrives. */
+  width: number;
+  height: number;
+  wide?: boolean;
+}
+const { light, dark, alt, caption, width, height, wide = false } = Astro.props;
+---
+
+<figure class:list={['figure', 'reveal', { bleed: wide }]}>
+  <div class="figure__frame figure__frame--plain themed" role="img" aria-label={alt}>
+    <img class="themed__light" src={light} alt="" width={width} height={height} loading="lazy" decoding="async" />
+    <img class="themed__dark" src={dark} alt="" width={width} height={height} loading="lazy" decoding="async" />
+  </div>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .figure {
+    margin-block: var(--space-8);
+  }
+
+  .themed :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .themed :global(.themed__dark) {
+    display: none;
+  }
+
+  :root[data-theme='dark'] .themed :global(.themed__light) {
+    display: none;
+  }
+
+  :root[data-theme='dark'] .themed :global(.themed__dark) {
+    display: block;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .themed :global(.themed__light) {
+      display: none;
+    }
+
+    :root:not([data-theme='light']) .themed :global(.themed__dark) {
+      display: block;
+    }
+  }
+</style>

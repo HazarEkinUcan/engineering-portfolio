@@ -1,0 +1,222 @@
+---
+/**
+ * HeroScene.astro — the hero mark.
+ *
+ * Two things share one box:
+ *
+ *   1. the POSTER — the completed signature, inlined as static SVG. It is the
+ *      LCP element: no network request, no font, no script, and it is the
+ *      finished mark rather than a placeholder. This is what a visitor sees
+ *      with no JavaScript, with reduced motion, without WebGL, or while the
+ *      robot chunk is still loading.
+ *
+ *   2. the STAGE — an empty box the 3D robot mounts into, if it is going to.
+ *      src/scripts/heroRobot.ts decides; nothing here assumes it will.
+ *
+ * The SVGs are real output from fanuc_writer_ls.py. Solid strokes are pen-down
+ * DRAW moves, the faint dashed accent lines are pen-up TRAVEL, and a square
+ * node marks each pen-down point — the same distinction the generator writes
+ * into the .LS program. The `--d` and `--t` custom properties on each stroke
+ * are its real schedule, and the 3D scene reads them back off these very
+ * elements rather than shipping a second copy of the timing.
+ *
+ * Two variants swap at 1024px; only the one in the layout is ever animated.
+ */
+import wideRaw from '../../assets/hero/signature-wide.svg?raw';
+import nameRaw from '../../assets/hero/signature-name.svg?raw';
+
+function inner(raw: string): string {
+  return raw.slice(raw.indexOf('>') + 1, raw.lastIndexOf('</svg>'));
+}
+
+function viewBox(raw: string): string {
+  return /viewBox="([^"]+)"/.exec(raw)?.[1] ?? '0 0 100 100';
+}
+
+const variants = [
+  { key: 'wide', className: 'signature--wide', raw: wideRaw },
+  { key: 'name', className: 'signature--name', raw: nameRaw },
+];
+---
+
+<script is:inline>
+  /* Runs before the hero is parsed, so nothing below has painted yet.
+     It answers one question: is the 3D robot going to run?
+
+     If it is, the poster — the COMPLETED signature — must never be painted,
+     because the visitor would see the finished mark, watch it vanish, and then
+     watch it be written again. Hiding it after the fact is too late; by then
+     it has already been on screen.
+
+     Both gates are decided here rather than in the module, so that the flag
+     and the loader can never disagree: the poster is hidden if and only if
+     something is coming to replace it. src/scripts/heroRobot.ts reads this
+     attribute and does nothing at all unless it says 'pending'.
+
+     Any failure after this point — the import, WebGL init, a lost context, or
+     simply taking too long — sets data-robot on the scene, and the CSS puts
+     the poster back. With no JavaScript this never runs and the poster is the
+     hero, exactly as before. */
+  (function () {
+    try {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var probe = document.createElement('canvas').getContext('webgl2');
+      if (!probe) return;
+      var lose = probe.getExtension('WEBGL_lose_context');
+      if (lose) lose.loseContext();
+      document.documentElement.dataset.heroRobot = 'pending';
+    } catch (error) {
+      /* Leave the poster visible. It is a complete hero on its own. */
+    }
+  })();
+</script>
+
+<div class="hero-scene" data-hero-scene>
+  <div class="hero-scene__stage" data-robot-stage></div>
+
+  <div class="hero-scene__poster">
+    {
+      variants.map(({ key, className, raw }) => (
+        <svg
+          class:list={['signature', className]}
+          viewBox={viewBox(raw)}
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden="true"
+          focusable="false"
+          data-variant={key}
+        >
+          <Fragment set:html={inner(raw)} />
+        </svg>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  /* The box is sized by aspect ratio rather than by the signature, because the
+     robot needs headroom above the writing that the writing itself does not
+     imply. The poster is then placed inside it, near where the 3D ink lands. */
+  .hero-scene {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    container-type: inline-size;
+  }
+
+  .hero-scene__stage,
+  .hero-scene__poster {
+    position: absolute;
+    inset: 0;
+  }
+
+  .hero-scene__stage {
+    /* Nothing is here until the robot mounts; it must never reserve ink. */
+    opacity: 0;
+    transition: opacity 620ms var(--ease-out);
+  }
+
+  .hero-scene__stage :global(canvas) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* The poster sits where the 3D signature will be written. The two cannot
+     coincide exactly — the scene camera is oblique, so the writing is very
+     slightly foreshortened, which a flat SVG cannot be — but the swap happens
+     while the 3D ink is still empty, so the mark never appears twice. */
+  .hero-scene__poster {
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    /* Placed where the 3D writing lands, so the cross-fade is not also a jump.
+       The insets are derived from the camera profiles in mount.js: at each
+       breakpoint the scene's writing occupies this share of the stage. */
+    padding-inline: 8% 51%;
+    transition: opacity 500ms var(--ease-out);
+  }
+
+  /* The enhanced path: the pre-paint gate above decided the robot is coming,
+     so the poster is taken out of the compositor entirely and is never shown.
+     The hero is briefly empty, which is the point — a blank space that fills
+     with writing reads as anticipation, a finished mark that empties itself
+     reads as a bug. */
+  :root[data-hero-robot='pending'] .hero-scene__poster {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .hero-scene[data-robot='ready'] .hero-scene__stage {
+    opacity: 1;
+  }
+
+  /* Every way the enhanced path can fail, after the gate has already hidden
+     the poster: the import rejected, the renderer would not start, the context
+     was lost, or it is simply taking so long that an empty hero is the worse
+     outcome. Ordered after the rule above so it wins the tie. */
+  .hero-scene[data-robot='unavailable'] .hero-scene__poster,
+  .hero-scene[data-robot='slow'] .hero-scene__poster,
+  .hero-scene[data-robot='lost'] .hero-scene__poster {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .hero-scene[data-robot='lost'] .hero-scene__stage,
+  .hero-scene[data-robot='unavailable'] .hero-scene__stage {
+    opacity: 0;
+  }
+
+  /* A late arrival still gets its cross-fade: 'slow' revealed the poster, and
+     'ready' replacing it takes the poster away again. */
+  .hero-scene[data-robot='ready'] .hero-scene__poster {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .signature--wide {
+    display: none;
+  }
+
+  @media (width >= 640px) {
+    .hero-scene {
+      aspect-ratio: 8 / 5;
+    }
+  }
+
+  @media (width >= 1024px) {
+    .hero-scene {
+      aspect-ratio: 3 / 2;
+    }
+
+    .hero-scene__poster {
+      padding-inline: 4% 46%;
+    }
+
+    .signature--wide {
+      display: block;
+    }
+
+    .signature--name {
+      display: none;
+    }
+  }
+
+  /* Below 640px the composition tightens onto the name and the working end of
+     the arm; the base is deliberately outside the frame. */
+  @media (width < 640px) {
+    .hero-scene {
+      aspect-ratio: 5 / 4;
+    }
+
+    .hero-scene__poster {
+      padding-inline: 4% 40%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-scene__stage,
+    .hero-scene__poster {
+      transition: none;
+    }
+  }
+</style>

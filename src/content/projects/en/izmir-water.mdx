@@ -1,0 +1,321 @@
+---
+order: 3
+status: published
+title: İzmir Reservoir and Water Consumption Forecasting
+subtitle: A four-person team project that assembled ten years of a city's water data into one monthly table, and forecast reservoir occupancy from it.
+summary: Consumption, reservoir levels, production and weather for İzmir, 2015 to 2024, merged into one monthly table with its provenance recorded in the data itself. Simple regularised regression forecast reservoir occupancy more accurately than the tree ensembles we tried against it.
+roleLabel: Data preparation, modelling and evaluation
+context: Team project · internship
+period: Aug 2025
+stack:
+  - Python
+  - pandas
+  - scikit-learn
+  - Meteostat
+  - Jupyter
+evidence:
+  - dataset
+  - code
+  - output
+role: >-
+  This was a four-person project and the narrative below says "we" where the
+  work was shared. My own contribution was the data and the modelling: cleaning
+  and preparing the raw series, integrating the separate datasets into one
+  monthly table, the feature engineering, training the models, comparing and
+  evaluating them, and the visualisation. I wrote the Meteostat gap-filling
+  step that replaced the missing weather months with real station observations.
+  I also prepared the final presentation and presented the project.
+limits: >-
+  Two columns in the assembled table are derived, not measured, and
+  nothing on this page treats them as findings. The split between domestic,
+  industrial and agricultural use is a fixed ratio applied to every month, not
+  a measured breakdown; and monthly consumption is the daily figure multiplied
+  by thirty, not an independently metered monthly total. The model comparison
+  has a real caveat too: the linear and the ensemble experiments were scored on
+  different train and test splits, so the gap between them is a reason to
+  prefer the simple model on this dataset, not a controlled measurement of one
+  beating the other. With 120 rows there was no room for a separate validation
+  set, and the 2025 forecast fills its weather and population inputs with 2024
+  averages. That is a reasonable placeholder and not a weather forecast.
+glance:
+  what: A monthly model of İzmir's reservoir occupancy and water consumption, built from ten years of public municipal and meteorological data.
+  built: The data preparation and integration, the feature engineering, the model comparison, and the weather gap-filling that made the table usable.
+chapters:
+  - { id: 'problem', label: "Ten years, one row a month" }
+  - { id: 'provenance', label: 'Where the numbers came from' }
+  - { id: 'models', label: 'Why the simple model won' }
+  - { id: 'forecast', label: 'Forecasting the year ahead' }
+  - { id: 'limits', label: 'Where the limits are' }
+card:
+  media: ../../../assets/projects/izmir-water/tahtali-card.jpg
+  alt: Aerial view of Tahtalı Dam, its concrete face marked DSİ, holding back a reservoir in wooded hills. This is one of the reservoirs the project models.
+  credit: 'Photo: Andyduffraine / Wikimedia Commons, CC BY-SA 4.0, cropped'
+  creditHref: https://commons.wikimedia.org/wiki/File:Tahtalibaraji.jpg
+seo:
+  description: A four-person team project forecasting İzmir's reservoir occupancy from ten years of municipal water and meteorological data.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+import Figure from '../../../components/content/Figure.astro';
+import FigurePair from '../../../components/content/FigurePair.astro';
+import ThemeFigure from '../../../components/content/ThemeFigure.astro';
+import tahtali from '../../../assets/projects/izmir-water/tahtali-dam.jpg';
+import presenting from '../../../assets/projects/izmir-water/presentation.jpg';
+import rainfall from '../../../assets/projects/izmir-water/rainfall-concept.jpg';
+import timelineLight from '../../../assets/projects/izmir-water/timeline-light.svg?url';
+import timelineDark from '../../../assets/projects/izmir-water/timeline-dark.svg?url';
+import pipelineLight from '../../../assets/projects/izmir-water/pipeline-light.svg?url';
+import pipelineDark from '../../../assets/projects/izmir-water/pipeline-dark.svg?url';
+import comparisonLight from '../../../assets/projects/izmir-water/model-comparison-light.svg?url';
+import comparisonDark from '../../../assets/projects/izmir-water/model-comparison-dark.svg?url';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Ten years of a city's water, one row a month"
+  deck="İzmir publishes its water data. It does not publish it in one place, in one shape, or at one interval."
+>
+
+İzmir's reservoirs, the water the city consumes and the weather that drives both
+are all a matter of public record. They are published by different bodies, in
+different formats, at different intervals, and some of it arrives as tables
+inside annual reports instead of as data.
+
+We set out to put ten years of it into a single monthly table and see how well
+reservoir occupancy could be forecast from it. That is the kind of indicator a
+water utility could act on. We wanted an error small enough to be worth quoting
+and a model simple enough to explain to the person acting on it.
+
+The scope that came out of that is deliberately narrow. One city, one decade,
+one row per month.
+
+<SpecList
+  items={[
+    { key: 'Period', value: '2015-01 to 2024-12, 120 monthly rows' },
+    { key: 'Targets', value: 'Reservoir occupancy (%) and stored volume (m³)' },
+    { key: 'Inputs', value: 'Consumption, production, population, temperature, rainfall, humidity, pressure, wind' },
+    { key: 'Consumption sources', value: 'İZSU subscription and consumption records, 2014 to 2024' },
+    { key: 'Weather sources', value: 'Turkish State Meteorological Service statistics, gap-filled from Meteostat stations' },
+  ]}
+/>
+
+The assembled monthly table is public. It was published to Kaggle by one of the
+team, and it is the same table the numbers on this page were produced from.
+
+<p>
+  <a
+    class="draw-link"
+    href="https://www.kaggle.com/datasets/ahmetarifsari/izmir-water"
+    rel="noopener noreferrer"
+    target="_blank"
+  >View the dataset on Kaggle <span aria-hidden="true">↗</span></a>
+</p>
+
+<FigurePair>
+  <Figure
+    slot="a"
+    src={tahtali}
+    alt="Aerial view of Tahtalı Dam, its concrete face marked DSİ, holding back a reservoir in wooded hills."
+    caption="Tahtalı Dam, one of the reservoirs that supplies İzmir, photographed in 2008. This is context for the problem. It is not project output, and not a water level from the period we modelled."
+    credit="Photo: Andyduffraine / Wikimedia Commons, CC BY-SA 4.0"
+    creditHref="https://commons.wikimedia.org/wiki/File:Tahtalibaraji.jpg"
+  />
+  <Figure
+    slot="b"
+    src={rainfall}
+    alt="Illustration of rain falling across a green catchment basin feeding a reservoir behind a dam wall."
+    caption="Concept illustration of the relationship the model is built on: rain over a catchment, stored behind a wall, drawn down by a city. It is drawn, not photographed. It is not Tahtalı's terrain and it carries no measurements."
+  />
+</FigurePair>
+
+</Chapter>
+
+<Chapter
+  id="provenance"
+  index="02"
+  title="Where the numbers came from, and where they did not"
+  deck="Every column in the table can name its source. That was the point of the table."
+>
+
+Merging public series is mostly a bookkeeping problem, and bookkeeping is where
+this kind of project quietly goes wrong. A value that was estimated, a month
+that was interpolated and a month that was measured all look identical once
+they are in the same column. So we carried the provenance in the data instead of
+in someone's memory. The consumption rows name the İZSU report they came from,
+the weather rows name the station, and the gap-filled months name the service and
+the coverage window they were filled from.
+
+<ThemeFigure
+  light={timelineLight}
+  dark={timelineDark}
+  width={2400}
+  height={1720}
+  alt="Two stacked charts: reservoir fill ratio as a percentage and monthly rainfall in millimetres, both across 2015 to 2024."
+  caption="The two series the forecast turns on, straight out of the project CSVs: reservoir fill ratio above, monthly rainfall below, 120 months with no gaps. Nothing here is smoothed, imputed or forecast. The rainfall column is labelled MGM_İstatistik_Normaller in the source, so treat it as the project's weather series and not as independently verified station observations. The fill ratio is the assembled reservoir figure, not Tahtalı alone."
+  wide
+/>
+
+The weather series had holes in it. Interpolating across them would have invented
+values and hidden the fact, so I pulled the missing months from Meteostat's
+station records for İzmir instead. The Çiğli station comes first, with Adnan
+Menderes as the fallback. Where relative humidity was absent but temperature and
+dew point were present, it is derived with the Magnus formula instead of being
+left empty.
+
+Two rules in that step are the ones worth stating. It fills only what is
+missing, so a real observation is never overwritten by a substitute. And it
+writes a provenance note into the output, so the next person to open the file
+learns where those months came from without having to ask anyone.
+
+<CodeExcerpt
+  file="fill_izmir_real_meteostat.py"
+  caption="Only NaNs are touched, and the file records what was done to it."
+>
+{`for target in [col_prcp, col_nem, col_pres, col_wspd]:
+    source = target + '_ms'
+`}<span class="cm">{`    # Fill ONLY the gaps — never overwrite a real observation.`}</span>{`
+    mask = df[target].isna() & df[source].notna()
+    df.loc[mask, target] = df.loc[mask, source]
+
+df['Kaynak_Notu'] = (
+    "Real monthly values. Source: Meteostat monthly/hourly dumps. "
+    "Station priority: Çiğli (17218) -> Adnan Menderes (17219). "
+    "Coverage: 2015-01 .. 2024-12."
+)`}
+</CodeExcerpt>
+
+<ThemeFigure
+  light={pipelineLight}
+  dark={pipelineDark}
+  width={2000}
+  height={2020}
+  alt="A six-step workflow: sources, clean and integrate, weather gaps, feature engineering, train and compare, and the 2025 forecast."
+  caption="The route from four public sources to a forecast. This is a schematic. It documents the workflow the project followed and it is not an executed training graph. The feature families shown occur across the prepared datasets, and they do not all land in every fitted model."
+  wide
+/>
+
+Not every column earned that confidence. The table carries a split of
+consumption into domestic, industrial and agricultural use, and a monthly
+consumption total. Both are derived: the split is one fixed ratio applied to
+every month, and the monthly total is the daily figure times thirty. They are
+useful for shaping a model and they are not measurements, so we do not quote them
+as results anywhere, here or in the presentation.
+
+</Chapter>
+
+<Chapter
+  id="models"
+  index="03"
+  title="Why the simple model won"
+  deck="120 rows, strong seasonality, and a target that mostly depends on where it was last month."
+>
+
+The features that mattered were the ones that encode time. Month went in as a
+pair of cyclical terms instead of a plain number, so that December and January
+sit next to each other instead of eleven apart. The previous month's value and a
+three-month rolling mean went in as lag features. Season went in one-hot.
+Population was added per capita and as a year-on-year change, and we tested a
+tourist-count feature to see whether summer visitors explained anything the
+calendar did not.
+
+We evaluated linear, ridge and lasso regression against random forest and
+gradient boosted trees. On this dataset the regularised linear models came out
+better, and they did so consistently across both targets.
+
+<ThemeFigure
+  light={comparisonLight}
+  dark={comparisonDark}
+  width={2400}
+  height={1820}
+  alt="Four bar charts comparing linear, ridge and lasso regression by RMSE and MAE, on reservoir fill ratio and on stored water volume."
+  caption="The reported errors for the three linear models, on both targets and both error scales. Lower is better. These are the rounded figures from the project's own evaluation, redrawn. They are not a rerun, and they are not comparable with the ensemble scores, which used a different split."
+  wide
+/>
+
+<div class="table-scroll">
+  <table class="data-table">
+    <caption class="visually-hidden">
+      Error metrics for the three linear models on the two forecast targets, as
+      reported in the project's final presentation.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Model</th>
+        <th scope="col">Target</th>
+        <th scope="col">RMSE</th>
+        <th scope="col">MAE</th>
+        <th scope="col">MAPE</th>
+        <th scope="col">R²</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">Linear</th><td>Occupancy %</td><td class="num">2.93</td><td class="num">2.40</td><td class="num">6.74%</td><td class="num">0.913</td></tr>
+      <tr><th scope="row">Lasso</th><td>Occupancy %</td><td class="num">3.00</td><td class="num">2.46</td><td class="num">6.87%</td><td class="num">0.909</td></tr>
+      <tr><th scope="row">Ridge</th><td>Occupancy %</td><td class="num">3.65</td><td class="num">3.21</td><td class="num">9.14%</td><td class="num">0.866</td></tr>
+      <tr><th scope="row">Ridge</th><td>Volume m³</td><td class="num">11.02M</td><td class="num">7.48M</td><td class="num">2.58%</td><td class="num">0.938</td></tr>
+      <tr><th scope="row">Linear</th><td>Volume m³</td><td class="num">13.47M</td><td class="num">8.85M</td><td class="num">3.01%</td><td class="num">0.908</td></tr>
+      <tr><th scope="row">Lasso</th><td>Volume m³</td><td class="num">13.47M</td><td class="num">8.85M</td><td class="num">3.01%</td><td class="num">0.908</td></tr>
+    </tbody>
+  </table>
+</div>
+
+That is not because trees are worse in general. 120 monthly rows is very little
+data, and almost all of the structure in this target is seasonality plus where
+the series was last month. A linear model with cyclical and lag terms represents
+that directly. An ensemble has to rediscover it from the data, and there is not
+enough data here for it to do so reliably.
+
+One honest footnote. Our linear and ensemble runs were scored on different train
+and test splits, so the two sets of error figures are not a controlled comparison.
+They support the decision we took on this dataset. They do not support a general
+claim about either family of models.
+
+We also wrote down what would change the answer. Weekly or daily data instead of
+monthly, an error that starts drifting, a non-linear pattern left in the
+residuals, or a genuinely new input such as evaporation or inflow would each be a
+reason to revisit the ensembles.
+
+</Chapter>
+
+<Chapter
+  id="forecast"
+  index="04"
+  title="Forecasting the year ahead"
+  deck="A model is only useful if somebody can run it forward."
+>
+
+For the 2025 projection we trained ridge regression on the full ten years, then
+rolled the model forward. The lag and rolling features for each month of 2025 are
+computed from the tail of 2024. The inputs that cannot be known in advance are
+temperature, rainfall and population, and those are filled with 2024 averages.
+
+That last choice is a placeholder and not a forecast. It is the right shape for
+showing how the model behaves over a year, and it means the projection inherits
+whatever 2024's weather happened to be. A real operational version would take
+those inputs from a meteorological forecast. That is where I would take this
+next, along with an automated pipeline for the reservoir data instead of the
+manual collection we did here.
+
+<Figure
+  src={presenting}
+  alt="Presenting the project in the laboratory, seated at the bench with a laptop, the presentation slide mirrored on the wall-mounted display above."
+  caption="Presenting the work at the end of the internship. Preparing and giving this presentation was part of my share of a four-person project."
+/>
+
+<SystemPanel
+  title="What the finished work does"
+  rows={[
+    'Merges five public monthly series for İzmir into one table, 2015 to 2024',
+    'Records the source of every column, including which months were gap-filled and from where',
+    'Fills missing weather months from real station observations, never overwriting a measured value',
+    'Builds cyclical month, lag, rolling-mean, per-capita and year-on-year features',
+    'Compares linear, ridge and lasso regression against random forest and gradient boosting on both targets',
+    'Reports MAE, RMSE, MAPE and R² for each model and target',
+    'Projects reservoir occupancy across 2025 from a ridge model trained on the full period',
+  ]}
+/>
+
+</Chapter>

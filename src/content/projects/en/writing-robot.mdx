@@ -1,0 +1,305 @@
+---
+order: 1
+status: published
+title: FANUC Text-to-Trajectory Writing Robot
+subtitle: A Python generator that turns typed text into a FANUC motion program, and the industrial robot that wrote it out in ink.
+summary: A Python generator with no third-party dependencies turns typed text into FANUC robot positions and a motion program, with an SVG preview to check before anything reaches the machine. The robot wrote the result on paper after I put a spring in the pen holder.
+roleLabel: Individual project
+context: Neksus Endüstriyel Otomasyon, İzmir
+period: Jun to Jul 2026
+stack:
+  - Python
+  - FANUC TP / LS
+  - RoboGuide
+  - SVG
+  - CSV
+evidence:
+  - video
+  - code
+  - output
+role: >-
+  I wrote the generator: the stroke font, the layout and automatic fitting, the
+  point builder and the three exporters. I designed and built the pen gripper,
+  then redesigned it around a spring when the first version would not draw a
+  consistent line. I set up the cell in RoboGuide, operated the teach pendant,
+  calibrated the tool and the writing plane, and troubleshot the result on the
+  physical robot. My supervisor's reference letter records the same scope.
+limits: >-
+  I did not measure anything. There is no repeatability figure, no line width
+  consistency measurement and no cycle time, because I did not take them. The
+  test was whether the text came out legible, and it did. I sized the spring by
+  trying springs, not by calculation. If I built this again I would put a dial
+  indicator on the plate and characterise the compliance properly, and I would
+  log the commanded Z against the achieved Z so the calibration error had a
+  number attached to it instead of a feel.
+glance:
+  what: An industrial robot that writes typed text with a pen, running a program I generated instead of teaching it point by point.
+  built: A single Python file, a pen gripper with a spring in it, and the calibration that made the two work together.
+chapters:
+  - { id: 'problem', label: 'Teaching a robot to write' }
+  - { id: 'generate', label: "Generate, don't teach" }
+  - { id: 'spring', label: 'A spring in the gripper' }
+  - { id: 'result', label: 'It wrote' }
+  - { id: 'limits', label: 'Where the limits are' }
+card:
+  alt: The FANUC 200iD/7L with the pen holder mounted, drawing a line of text on paper taped to a round table.
+  video:
+    mp4: /video/writing-loop.mp4
+    webm: /video/writing-loop.webm
+    poster: /video/writing-poster.jpg
+hero:
+  media: ../../../assets/projects/writing-robot/roboguide-cell.jpg
+  alt: RoboGuide showing the generated toolpath as four lines of yellow text positioned in front of the robot model in the simulated cell.
+seo:
+  description: A Python generator that converts typed text into FANUC robot positions and a motion program, and the industrial robot that wrote it out in ink.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import Figure from '../../../components/content/Figure.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import PipelineDiagram from '../../../components/diagrams/PipelineDiagram.astro';
+import PenMotionDiagram from '../../../components/diagrams/PenMotionDiagram.astro';
+import ComplianceDiagram from '../../../components/diagrams/ComplianceDiagram.astro';
+import workshop from '../../../assets/projects/writing-robot/workshop-cell.jpg';
+import program from '../../../assets/projects/writing-robot/roboguide-program.jpg';
+import planned from '../../../assets/projects/writing-robot/generated-preview.jpg';
+import written from '../../../assets/projects/writing-robot/written-result.jpg';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Teaching a robot to write without teaching every point"
+  deck="A short phrase is hundreds of robot positions. I did not want to record them by hand."
+>
+
+In the last two weeks of my internship there was a FANUC 200iD/7L in the workshop
+with no customer project on it. I had spent the previous weeks on palletizing
+cells, where the robot moves a bag from one place to another. I wanted to build
+one complete system instead of practising isolated commands, so I decided to make
+the robot write.
+
+The usual way to do that is to jog the robot to each point and record it. A short
+phrase is hundreds of positions, so teaching them by hand was never going to
+work. I wanted a repeatable path from the text I type to a motion program the
+controller can run.
+
+Writing is also less forgiving than pick and place. The pen tip has to stay near
+a plane across the whole sheet. The contact has to be firm enough to leave a line
+and light enough not to bend anything. Hundreds of small moves have to run in the
+right order. Any of those is where a coordinate system error shows up.
+
+<SpecList
+  items={[
+    { key: 'Paper', value: 'Fits A4 landscape at 297 × 210 mm, or the text shrinks until it does' },
+    { key: 'Characters', value: 'A-Z, a-z, 0-9, punctuation, and the Turkish letters ç ğ ı İ ö ş ü' },
+    { key: 'Safety', value: 'No coordinate outside the configured envelope ever reaches the robot' },
+    { key: 'Workflow', value: 'Output has to load through the normal FANUC program workflow' },
+    { key: 'Orientation', value: 'The Cartesian CONFIG and W/P/R come from a point validated on the real robot, not from a guess' },
+  ]}
+/>
+
+<Figure
+  src={workshop}
+  alt="Two large FANUC palletizing robots in the workshop hall, arms raised over a gantry and conveyor."
+  caption="Part of the workshop environment during my internship. The robot shown here is not the FANUC used for the writing project; that setup was located in a different area."
+  wide
+/>
+
+</Chapter>
+
+<Chapter
+  id="generate"
+  index="02"
+  title="Generate the program, don't teach the points"
+  deck="Text goes in, a motion program comes out, and an SVG preview shows the path before the robot runs it."
+>
+
+The generator is one Python file with no third-party dependencies. That was
+deliberate: it had to run on a workshop laptop without anyone installing
+anything.
+
+The font is the part people do not expect. Each character is a list of polylines
+in a unit box. There are no outlines to fill, because the pen draws one stroke at
+a time. In that box `y = 0` is the cap height, `y = 1` is the baseline, and
+descenders reach `1.30`. A glyph maps straight onto the segments where the pen is
+down.
+
+The Turkish characters are composed at runtime. `ç` is `c` plus a cedilla stroke,
+`ğ` is `g` plus a breve, `ü` is `u` plus a diaeresis. To add a language I add
+accent functions instead of redrawing an alphabet.
+
+<PipelineDiagram />
+
+Three decisions in that pipeline mattered more than the rest.
+
+The first is automatic fitting. If the text does not fit the paper, the generator
+searches for the largest letter height that does, scaling character and word
+spacing by the same ratio so the proportions hold. It only ever shrinks the text.
+Below 3 mm it stops and refuses, because the pen cannot resolve letters that
+small.
+
+<CodeExcerpt
+  file="fanuc_writer_ls.py · fit_text_to_paper()"
+  caption="Fifty iterations of bisection, then just under the last height that fit."
+>
+{`low = minimum_height_mm
+high = original_height
+
+`}<span class="cm">{`# Binary search for the largest height that fits.`}</span>{`
+for _ in range(50):
+    middle = (low + high) / 2.0
+    candidate = scaled_config(middle)
+    if fits_paper(layout_text(candidate), candidate):
+        low = middle
+    else:
+        high = middle
+
+return scaled_config(low * 0.999)`}
+</CodeExcerpt>
+
+The second is the termination type on each point. This is what decides whether
+the line looks clean.
+
+<PenMotionDiagram />
+
+The points where the pen goes down and comes up are emitted as `FINE`. Those are
+the two moments the tip has to arrive exactly where it was told. Every vertex in
+between is `CNT10`, so the controller blends the corners instead of stopping at
+each one. With `FINE` everywhere the robot stutters through every character. With
+`CNT10` everywhere the pen rounds off the start of each stroke.
+
+<CodeExcerpt file="fanuc_writer_ls.py · export_fanuc_ls()">
+{`for point in points:
+    termination = (
+        `}<span class="hl">{`"FINE"`}</span>{`
+        if point.motion_type in {"PEN_DOWN", "PEN_UP"}
+        else `}<span class="hl">{`"CNT10"`}</span>{`
+    )
+    motion_instructions.append(
+        f"L P[{point.number}] {point.speed_mm_sec}mm/sec "
+        f"{termination} ;"
+    )`}
+</CodeExcerpt>
+
+<Figure
+  src={program}
+  alt="A laptop screen showing the RoboGuide 3D view beside the teach pendant program list, where lines read Stroke 18 vertex 3, P[111] 20mm/sec CNT10, Stroke 18 pen up and P[119] 100mm/sec FINE."
+  caption="The generated program on the teach pendant. The stroke comments and the alternating CNT10 and FINE terminations come straight from the exporter."
+  wide
+/>
+
+The third is what happens when something is wrong. Every point is checked against
+the configured bounds before any file is written. A coordinate outside the
+envelope raises an error instead of being quietly clamped. A program that fails
+to generate costs a minute. A program that silently moves a point to the edge of
+the paper costs whatever the robot hits.
+
+<CodeExcerpt file="fanuc_writer_ls.py · validate_xyz()">
+{`if not all(math.isfinite(value) for value in (x, y, z)):
+    raise ValueError(f"Non-finite coordinate: {(x, y, z)}")
+if not (config.min_x_mm <= x <= config.max_x_mm):
+    raise ValueError(f"X out of bounds: {x:.3f} mm")`}
+</CodeExcerpt>
+
+For the same reason, the CONFIG string and the tool orientation are parameters
+with a warning in the docstring. I did not bake values into the file. They have
+to be copied from a validated point on the exact robot, and a default that looks
+plausible would be worse than no default at all.
+
+</Chapter>
+
+<Chapter
+  id="spring"
+  index="03"
+  title="A spring in the gripper"
+  deck="The path was right and the line still came out faint. The fix turned out to be mechanical."
+>
+
+The coordinate system was the hard part of the software, and it took longer than
+I expected. Scale, origin, writing plane and stroke ordering all have to agree,
+and if any one of them is off the characters come out sheared, mirrored or in the
+wrong order. None of that shows in the output once it is correct.
+
+Then I ran it on the robot. The path was correct, and it was correct in RoboGuide
+too. On paper the line was faint in places and missing in others.
+
+My first instinct was to push the tool further into the paper, lower the writing
+plane by a millimetre and try again. That is the wrong move. A robot commanded
+into a rigid surface keeps going until something gives. I would have risked
+bending the holder and damaging the pen, and every small calibration error would
+have become more dangerous instead of less. Those errors are small and
+unavoidable. The tool centre point is off by a fraction, the paper is not
+perfectly flat, the table is not perfectly level. One TCP error affects every
+character on the page.
+
+So I changed the gripper and put a spring in it.
+
+<ComplianceDiagram />
+
+That is the whole fix. The pen can move relative to the holder, so the contact
+force comes mostly from the spring instead of from how accurately I told the
+robot where the paper was. The height variation that used to decide between no
+line and too much load now falls inside a band the spring absorbs.
+
+It is a simple change and it stuck with me. I had been treating the contact
+problem as something to fix in the software, and the better answer was in the
+hardware.
+
+</Chapter>
+
+<Chapter
+  id="result"
+  index="04"
+  title="It wrote"
+  deck="The same phrase, once as the generator's SVG preview and once in ink."
+>
+
+The generator works. Run it on `Hazar Ekin Uçan` and it produces 19 strokes and
+127 robot points, and it shrinks the requested 30 mm letter height to 23.31 mm so
+the line fits the page. I took those numbers from running it.
+
+<div class="pair">
+  <Figure
+    src={planned}
+    alt="The generator's SVG preview: four lines of single-stroke text reading Hazar Ekin Uçan, Constructor University, Robotics and Intellegent Systems, Precision in Automation."
+    caption="Planned. The SVG preview the generator writes alongside the motion program. This is what I check before the robot runs."
+  />
+  <Figure
+    src={written}
+    alt="The same four lines written in pen on paper by the robot, the strokes visibly formed from straight segments."
+    caption="Written. The same phrase in ink. The spelling mistake was in the text I typed into the generator, and it comes through faithfully all the way to the paper."
+  />
+</div>
+
+Below is the robot writing. There is no audio. The original recording is workshop
+noise and carries nothing.
+
+<figure class="figure video-figure bleed">
+  <div class="video-figure__frame">
+    <video
+      controls
+      muted
+      playsinline
+      preload="metadata"
+      poster="/video/writing-poster.jpg"
+      width="464"
+      height="832"
+    >
+      <source src="/video/writing-demo.mp4" type="video/mp4" />
+      Your browser cannot play this video.
+    </video>
+  </div>
+  <figcaption>
+    The FANUC 200iD/7L drawing the second line, pen in contact, paper taped to the
+    table. Filmed on a phone at the end of the internship. No audio.
+  </figcaption>
+</figure>
+
+The project pulled in nearly everything I had learned in the previous weeks.
+Teach pendant operation, tool and user frames, registers and position registers,
+digital I/O, motion types and speeds, mastering, calibration and alarm
+troubleshooting all ended up in it. At the end there was something I could look
+at and tell straight away whether it worked.
+
+</Chapter>

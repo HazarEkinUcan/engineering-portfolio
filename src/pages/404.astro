@@ -1,0 +1,10 @@
+---
+/*
+ * The site's real 404 document. A static host serves this one file for every
+ * unmatched request, whatever prefix it had, so it must keep existing at the
+ * root and must not be replaced by a localized copy.
+ */
+import NotFoundPage from '../components/pages/NotFoundPage.astro';
+---
+
+<NotFoundPage locale="en" />

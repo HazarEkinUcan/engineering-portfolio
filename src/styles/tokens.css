@@ -1,0 +1,150 @@
+/* ---------------------------------------------------------------------------
+   tokens.css — the only place a colour, size, duration or easing is defined.
+   Values come from planning/design-spec.md §2, §3, §4 and §7.
+   Every contrast ratio in the comments was computed, not estimated.
+--------------------------------------------------------------------------- */
+
+@layer tokens {
+  :root {
+    /* --- type families ------------------------------------------------- */
+    --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system,
+      'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo,
+      monospace;
+    --font-serif: 'IBM Plex Serif', ui-serif, Georgia, 'Times New Roman', serif;
+
+    /* --- type scale, fluid 480 → 1440px -------------------------------- */
+    --text-display: clamp(2.75rem, 1.6rem + 5.8vw, 5.25rem);
+    --text-h1: clamp(2.125rem, 1.5rem + 3.1vw, 3.5rem);
+    --text-h2: clamp(1.625rem, 1.3rem + 1.6vw, 2.375rem);
+    --text-h3: clamp(1.3125rem, 1.15rem + 0.8vw, 1.6875rem);
+    --text-lede: clamp(1.1875rem, 1.08rem + 0.5vw, 1.4375rem);
+    --text-body: clamp(1.03rem, 0.98rem + 0.22vw, 1.125rem);
+    --text-small: clamp(0.9375rem, 0.91rem + 0.13vw, 1rem);
+    --text-mono: clamp(0.8125rem, 0.79rem + 0.11vw, 0.875rem);
+    --text-label: clamp(0.72rem, 0.7rem + 0.1vw, 0.78rem);
+
+    --lh-display: 1.02;
+    --lh-h1: 1.08;
+    --lh-h2: 1.15;
+    --lh-h3: 1.25;
+    --lh-lede: 1.55;
+    --lh-body: 1.65;
+
+    --track-display: -0.03em;
+    --track-h1: -0.025em;
+    --track-h2: -0.02em;
+    --track-h3: -0.015em;
+    --track-label: 0.09em;
+
+    /* --- spacing, 4px base --------------------------------------------- */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+    --space-9: 80px;
+    --space-10: 112px;
+    --space-11: 160px;
+
+    --space-section: clamp(72px, 9vw, 144px);
+    --gutter: clamp(20px, 5vw, 64px);
+    --grid-gap: clamp(20px, 3vw, 32px);
+
+    /* --- containers ----------------------------------------------------- */
+    --w-prose: 62ch;
+    --w-text: 68ch;
+    --w-content: 1240px;
+    --w-media: 1400px;
+
+    --radius: 4px;
+    --radius-sm: 2px;
+
+    /* --- motion --------------------------------------------------------- */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+
+    --dur-instant: 100ms;
+    --dur-fast: 150ms;
+    --dur-base: 250ms;
+    --dur-slow: 400ms;
+    --dur-slower: 600ms;
+    --stagger: 70ms;
+
+    /* --- light theme ----------------------------------------------------
+       Every colour is defined here on bare :root, so no value exists only
+       inside a media or [data-theme] block.                                */
+    --bg: #f6f5f2;
+    --surface: #fdfcfa;
+    --surface-sunken: #eeece7;
+    --text-primary: #16181a; /* 16.33 on --bg */
+    --text-secondary: #55595e; /*  6.47 */
+    --text-muted: #6b7075; /*  4.59 — AA for small text */
+    --border-hairline: #dcd9d2; /*  decorative rules only */
+    --border-ui: #8e897f; /*  3.19 — sole boundary of a control */
+    --accent: #e5a70b; /*  graphic only on light */
+    --accent-text: #7c5a00; /*  5.80 — accent-coloured text */
+    --accent-contrast: #16181a; /*  8.36 on --accent */
+    --steel: #3f6c86; /*  5.20 — diagram second series only */
+
+    --shadow-raised: 0 1px 2px rgb(16 24 32 / 0.04), 0 8px 24px rgb(16 24 32 / 0.06);
+    --selection-bg: #f4dfa6;
+    --selection-fg: #16181a;
+  }
+
+  /* --- dark theme ------------------------------------------------------ */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #0f1113;
+      --surface: #16191c;
+      --surface-sunken: #1d2124;
+      --text-primary: #ecedee; /* 16.14 */
+      --text-secondary: #a2a8ad; /*  7.88 */
+      --text-muted: #8a9196; /*  5.92 */
+      --border-hairline: #2a2f33;
+      --border-ui: #5a6167; /*  3.01 */
+      --accent: #f0b429; /* 10.15 — safe as text on dark */
+      --accent-text: #f0b429;
+      --accent-contrast: #0f1113;
+      --steel: #7fb0cc; /*  8.09 */
+
+      --shadow-raised: none;
+      --selection-bg: #4a3a12;
+      --selection-fg: #ecedee;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --bg: #0f1113;
+    --surface: #16191c;
+    --surface-sunken: #1d2124;
+    --text-primary: #ecedee;
+    --text-secondary: #a2a8ad;
+    --text-muted: #8a9196;
+    --border-hairline: #2a2f33;
+    --border-ui: #5a6167;
+    --accent: #f0b429;
+    --accent-text: #f0b429;
+    --accent-contrast: #0f1113;
+    --steel: #7fb0cc;
+
+    --shadow-raised: none;
+    --selection-bg: #4a3a12;
+    --selection-fg: #ecedee;
+  }
+
+  :root {
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+  }
+}

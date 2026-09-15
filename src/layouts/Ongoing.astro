@@ -1,0 +1,351 @@
+---
+/**
+ * Layout for a build that is underway.
+ *
+ * Deliberately not Project.astro. That layout asserts a finished thing — it has
+ * an "at a glance / what I built", a role statement in the past tense, an
+ * evidence footer and a "where the limits are" section, all of which would be
+ * claims this page cannot support. The furniture here says the opposite: a
+ * status line, a last-updated date, a block of targets labelled as targets, and
+ * a plain list of how far the work actually is.
+ *
+ * The chapters, rail, typography and media frame are the same components the
+ * case studies use, so it reads as the same site.
+ */
+import { Image } from 'astro:assets';
+import Base from './Base.astro';
+import MetaRail from '../components/project/MetaRail.astro';
+import SectionRail from '../components/project/SectionRail.astro';
+import ContactBand from '../components/layout/ContactBand.astro';
+import type { CollectionEntry } from 'astro:content';
+import type { Locale } from '../i18n/locales';
+import { href } from '../i18n/paths';
+import { fill, t } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+  /** Locale-independent slug, so the canonical URL is the same in every language. */
+  slug: string;
+  project: CollectionEntry<'ongoing'>;
+}
+
+const { locale, slug, project } = Astro.props;
+const d = project.data;
+const ui = t(locale);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CreativeWork',
+  name: d.title,
+  abstract: d.summary,
+  /* Schema.org vocabulary, read by machines, so it stays in English in every
+     locale. The visible chip beside it is the translated one. */
+  creativeWorkStatus: 'Ongoing',
+  inLanguage: locale,
+  author: { '@type': 'Person', name: 'Hazar Ekin Uçan' },
+  url: new URL(href(`/projects/${slug}`, locale), Astro.site ?? 'https://hazarekinucan.com').href,
+};
+
+/* The Current status section is rendered by this layout rather than written in
+   the body, so its chapter number has to be derived — a build with eight
+   chapters must not be told it is on six. The rail lists the status chapter, so
+   its position there is the number. */
+const statusPos = d.chapters?.findIndex((chapter) => chapter.id === 'status') ?? -1;
+const statusIndex = String(
+  statusPos >= 0 ? statusPos + 1 : (d.chapters?.length ?? 0) + 1,
+).padStart(2, '0');
+
+const meta = [
+  d.context && { key: ui.ongoing.metaContext, value: d.context },
+  d.started && { key: ui.ongoing.metaStarted, value: d.started },
+  d.focus && { key: ui.ongoing.metaFocus, value: d.focus },
+  { key: ui.ongoing.metaStatus, value: ui.ongoing.metaStatusValue },
+].filter(Boolean) as { key: string; value: string }[];
+---
+
+<Base
+  locale={locale}
+  title={`${d.title} · Hazar Ekin Uçan`}
+  description={d.seo?.description ?? d.summary}
+  readingProgress
+  jsonLd={jsonLd}
+>
+  <article class="project ongoing" data-article>
+    <header class="project__header wrap">
+      <p class="project__back">
+        <a class="draw-link" href={href('/#ongoing', locale)}>
+          <span aria-hidden="true">←</span> {ui.ongoing.backToOngoing}
+        </a>
+      </p>
+
+      <p class="ongoing__badge"><span class="chip chip--ongoing mono">{ui.ongoing.statusChip}</span></p>
+
+      <h1 class="project__title">{d.title}</h1>
+      {d.subtitle && <p class="project__subtitle lede">{d.subtitle}</p>}
+
+      <!-- The living line. What is true today, and when today was. -->
+      <div class="ongoing__status">
+        <p class="ongoing__statusLine">{d.statusLine}</p>
+        <p class="ongoing__updated mono">{ui.ongoing.lastUpdated} {d.updated}</p>
+      </div>
+
+      <MetaRail items={meta} />
+    </header>
+
+    {
+      d.media && (
+        <div class="project__hero wrap wrap--media">
+          <figure class="concept">
+            <div class:list={['concept__frame', { 'concept__frame--contain': d.media.contain }]}>
+              <Image
+                src={d.media.src}
+                alt={d.media.alt}
+                widths={[600, 900, 1200]}
+                sizes="(min-width: 1280px) 1100px, 100vw"
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+            <figcaption class="concept__caption mono">{d.media.caption}</figcaption>
+          </figure>
+        </div>
+      )
+    }
+
+    <div class="wrap wrap--media">
+      <div class="offset-grid project__body">
+        {d.chapters && <aside class="project__rail"><SectionRail items={d.chapters} /></aside>}
+
+        <div class="offset-content">
+          <!-- Targets, framed as targets. Nothing in this block is a measurement,
+               and the heading says so before the first row is read. -->
+          <section class="targets" aria-labelledby="targets-title">
+            <h2 class="targets__title label" id="targets-title">{ui.ongoing.targetsHeading}</h2>
+            <p class="targets__note">{d.targetsNote}</p>
+            <dl class="targets__list">
+              {
+                d.targets.map((target) => (
+                  <div class="targets__row">
+                    <dt class="targets__key label">{target.key}</dt>
+                    <dd class="targets__value">{target.value}</dd>
+                  </div>
+                ))
+              }
+            </dl>
+          </section>
+
+          <slot />
+
+          <!-- Current status closes the page, as the last chapter, so the honest
+               answer to "how far is this?" is the last thing read. -->
+          <section class="chapter defer-render" id="status" aria-labelledby="status-title">
+            <p class="chapter__index label">{statusIndex}</p>
+            <h2 class="chapter__title reveal" id="status-title">{ui.ongoing.statusHeading}</h2>
+            <p class="chapter__deck deck reveal">
+              {fill(ui.ongoing.statusDeck, { date: d.updated })}
+            </p>
+            <ul class="state reveal" role="list">
+              {d.currentStatus.map((item) => <li>{item}</li>)}
+            </ul>
+            <p class="state__note">{d.statusNote}</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <ContactBand locale={locale} />
+</Base>
+
+<style>
+  .project__header {
+    padding-block-start: var(--space-8);
+  }
+
+  .project__back {
+    font-size: var(--text-small);
+    margin-block-end: var(--space-6);
+  }
+
+  .ongoing__badge {
+    margin-block-end: var(--space-4);
+  }
+
+  .project__title {
+    max-width: 18ch;
+  }
+
+  .project__subtitle {
+    margin-block-start: var(--space-5);
+    max-width: 54ch;
+  }
+
+  /* An accent rule down the side: the one place on the page that is allowed to
+     look like a notice, because it is the one thing that changes over time. */
+  .ongoing__status {
+    margin-block-start: var(--space-7);
+    padding-inline-start: var(--space-5);
+    border-inline-start: 2px solid var(--accent);
+    max-width: 54ch;
+  }
+
+  .ongoing__statusLine {
+    color: var(--text-primary);
+  }
+
+  .ongoing__updated {
+    margin-block-start: var(--space-2);
+    color: var(--text-muted);
+  }
+
+  .project__header :global(.meta) {
+    margin-block-start: var(--space-8);
+  }
+
+  .project__hero {
+    margin-block-start: var(--space-8);
+  }
+
+  .concept {
+    margin: 0;
+  }
+
+  .concept__frame {
+    overflow: hidden;
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-sm);
+    background: var(--surface-sunken);
+  }
+
+  /* This rule is load-bearing. astro:assets emits width and height attributes on
+     the image; reset.css caps the width at 100% but never releases that height,
+     so once the frame is narrower than the source the element keeps its full
+     intrinsic height and the picture is squeezed horizontally — a circle becomes
+     a tall ellipse. Setting height:auto alongside the width is what keeps the
+     rendered box on the source's own ratio. Same pattern as .figure__frame. */
+  .concept__frame :global(img) {
+    width: 100%;
+    height: auto;
+  }
+
+  /* Concept art on a transparent ground is shown whole. Covering it to a wide
+     frame would cut the wrist off one end and the base off the other, and the
+     transparency is what lets it sit on the theme's own surface. */
+  .concept__frame--contain {
+    display: grid;
+    place-items: center;
+    padding: var(--space-6);
+  }
+
+  /* Shown whole: width and height both auto, bounded by the frame and by a
+     viewport-relative cap. Both axes scale together, so the geometry is the
+     source's own — nothing is stretched, squeezed or cropped. */
+  .concept__frame--contain :global(img) {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: min(56vh, 520px);
+    object-fit: contain;
+  }
+
+  .concept__caption {
+    margin-block-start: var(--space-3);
+    color: var(--text-muted);
+    max-width: 62ch;
+  }
+
+  .project__body {
+    padding-block: var(--space-9) var(--space-10);
+  }
+
+  @media (width < 1280px) {
+    .project__rail {
+      display: none;
+    }
+  }
+
+  .targets {
+    padding: var(--space-6);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .targets__title {
+    color: var(--accent-text);
+  }
+
+  .targets__note {
+    margin-block-start: var(--space-3);
+    color: var(--text-secondary);
+    max-width: 54ch;
+  }
+
+  .targets__list {
+    margin: var(--space-6) 0 0;
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .targets__row {
+    display: grid;
+    gap: var(--space-1) var(--space-5);
+    padding-block: var(--space-4);
+    border-block-end: 1px solid var(--border-hairline);
+  }
+
+  @media (width >= 640px) {
+    .targets__row {
+      grid-template-columns: 12rem 1fr;
+      align-items: baseline;
+    }
+  }
+
+  .targets__key {
+    color: var(--text-muted);
+  }
+
+  .targets__value {
+    margin: 0;
+    color: var(--text-primary);
+  }
+
+  .state {
+    margin-block-start: var(--space-6);
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-4);
+    max-width: 62ch;
+  }
+
+  .state li {
+    padding-inline-start: var(--space-5);
+    border-inline-start: 1px solid var(--border-hairline);
+    color: var(--text-secondary);
+  }
+
+  .state__note {
+    margin-block-start: var(--space-6);
+    color: var(--text-muted);
+    max-width: 54ch;
+    font-size: var(--text-small);
+  }
+
+  .chapter {
+    padding-block-start: var(--space-10);
+  }
+
+  .chapter__index {
+    color: var(--text-muted);
+    margin-block-end: var(--space-3);
+  }
+
+  .chapter__title {
+    max-width: 20ch;
+  }
+
+  .chapter__deck {
+    margin-block-start: var(--space-4);
+    max-width: 46ch;
+  }
+</style>

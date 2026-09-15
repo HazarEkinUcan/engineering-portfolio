@@ -1,0 +1,287 @@
+---
+order: 2
+status: published
+title: VR Prosodic Speech Analysis System
+subtitle: VR egzersizinde kişinin konuşma biçimini ölçüp kendi sakin ve aceleci konuşma kayıtlarına göre değerlendiren, tamamlanmış bir sistem.
+summary: Python analiz motoru, VR egzersizindeki konuşmayı kaydedip metne dönüştürüyor. Altı prozodik özelliği, kişinin sakin ve belirgin biçimde aceleci referans kayıtlarına göre puanlıyor. FastAPI sistemi Quest başlığına bağlıyor. En çok önemsediğim kısmı, güvenilir puan veremediğinde sonuç vermemesi.
+roleLabel: Python motoru ve API
+context: Kişisel proje
+period: '2026'
+stack:
+  - Python
+  - FastAPI
+  - Faster-Whisper
+  - Praat / parselmouth
+  - librosa
+evidence:
+  - code
+  - architecture
+  - system-design
+role: >-
+  Python analiz motorunu ben tasarlayıp yazdım. Ses kaydı, Faster-Whisper ile
+  konuşmayı metne dönüştürme ve kelime zamanlaması, Praat ve librosa ile
+  prozodik özellikleri çıkarma bu çalışmanın parçalarıydı. İki referans kaydına
+  dayalı kişisel kalibrasyonu, puanlamayı, kalite kontrollerini ve oturumların
+  kaydedilmesini de hazırladım. VR katmanının çağırdığı FastAPI servisini de ben
+  yazdım. Depodaki her commit bana ait. Sistem, başlık Quest Link üzerinden
+  bağlıyken tek bir Windows PC üzerinde baştan sona çalışıyor.
+limits: >-
+  Prozodik puan, kişinin konuşmasının kendi sakin referansından aceleci
+  referansına doğru ne kadar değiştiğini gösteriyor. Bu değişimin nedenini
+  söylemiyor. Yorgunluk, nezle, gürültülü ortamda yüksek sesle konuşmak ve
+  gerçekten acele etmek aynı özellikleri aynı yönde değiştirebiliyor. Ses
+  sinyali bunları birbirinden ayırmaya yetmiyor. Puan
+  açıkça klinik bir ölçüt değil. Kod, sonucu yazdırdığı yerde bunu söylüyor ve bu
+  sistemin kullanılacağı her yerde söylemeye devam ederim. Konuşma hızını hesaplarken kullandığım hece sayısı, Türkçedeki ünlü
+  harflerin sayısından elde edilen yaklaşık bir değer. Bir
+  konuşmacıyı kendisiyle karşılaştırmak için yeterli, konuşmacıları birbiriyle
+  karşılaştırmak için değil.
+glance:
+  what: Bir VR egzersizi sırasında sesteki uyarılmayı ölçen ve kişiye göre normalize edilmiş bir puanı gerçek zamanlı gösteren bir sistem.
+  built: Python analiz motoru ve VR katmanının çağırdığı FastAPI servisi.
+chapters:
+  - { id: 'problem', label: 'Birinin nasıl konuştuğu' }
+  - { id: 'anchors', label: 'İki referans kaydı' }
+  - { id: 'refuse', label: 'Yanıltıcı puanları önlemek' }
+  - { id: 'system', label: 'Tamamlanmış sistem' }
+  - { id: 'limits', label: 'Sınırlar ve kısıtlar' }
+card:
+  media: ../../../assets/projects/prosodic-vr/vr-concept-card.jpg
+  alt: Konsept görsel. Açık renkli bir yüzeyde duran bir VR başlığı ve iki el kumandası; ön planda bir konuşma dalga formu uzanıyor.
+  credit: Konsept görsel, proje donanımı değil
+seo:
+  description: VR egzersizindeki konuşmayı kişinin sakin ve aceleci referans kayıtlarına göre puanlayan tamamlanmış sistem. Python analiz motoru ve FastAPI bağlantısı.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+import CalibrationDiagram from '../../../components/diagrams/CalibrationDiagram.astro';
+import ArchitectureDiagram from '../../../components/diagrams/ArchitectureDiagram.astro';
+import QualityGateDiagram from '../../../components/diagrams/QualityGateDiagram.astro';
+import Figure from '../../../components/content/Figure.astro';
+import ThemeFigure from '../../../components/content/ThemeFigure.astro';
+import questUnity from '../../../assets/projects/prosodic-vr/quest-unity-collage.jpg';
+import speechLight from '../../../assets/projects/prosodic-vr/speech-features-light.svg?url';
+import speechDark from '../../../assets/projects/prosodic-vr/speech-features-dark.svg?url';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Birinin nasıl konuştuğunu ölçmek"
+  deck="Bir VR egzersizinde, kişinin konuşma biçimi görev puanının yakalamadığı bir bilgi taşıyor."
+>
+
+Biri VR içinde simüle edilmiş bir prosedürü uygularken sistem, adımları tamamlayıp
+tamamlamadığını zaten biliyor. Ama o sırada nasıl konuştuğunu bilmiyor. Sesin perdesi, şiddeti, konuşma
+hızı ve duraklamalar bu konuda bilgi veriyor. Egzersiz devam ederken bu
+bilgileri bir puana dönüştürmek istedim.
+
+Sabit bir eşik işe yaramıyor. 180 Hz veya 70 dB üzerindeki her değeri yüksek
+uyarılma kabul edersem, kişinin o anki durumundan çok sesinin doğal
+özelliklerini ölçmüş oluyorum. Doğal
+olarak gür konuşan biri sakinken bile o çizgiyi geçiyor. Kısık konuşan biri
+gerçek baskı altında bile hiç geçmiyor. Herkese aynı akustik eşiği uygulamak, farklı seslerin aynı şekilde
+değerlendirilebileceğini varsayıyor. Ben ise bir kişinin kendi sesindeki
+değişimi bulmak istiyordum.
+
+<SpecList
+  items={[
+    { key: 'Donanım', value: 'Tek bir Windows PC, Quest Link üzerinden Meta Quest 3, Oculus sanal mikrofonundan 16 kHz mono ses' },
+    { key: 'Etkileşim', value: 'Tek bir kumanda tuşu: kaydetmek için basılı tut, analiz için bırak' },
+    { key: 'Sınır', value: 'Ses analizini C# ile tekrar yazmadım. Analizin tek uygulaması Python tarafında' },
+    { key: 'Gecikme', value: 'Analiz, egzersiz hâlâ sürerken sonuç döndürüyor' },
+    { key: 'İlke', value: 'Kötü bir puan döndürmektense hiçbir şey döndürme' },
+  ]}
+/>
+
+</Chapter>
+
+<Chapter
+  id="anchors"
+  index="02"
+  title="Tek eşik yerine iki referans kaydı"
+  deck="Her konuşmacı için ayrı bir ölçek oluşturuluyor. Ölçeğin iki ucu da o kişinin kendi sesinden ölçülüyor."
+>
+
+Egzersizden önce kullanıcı iki kısa cümle kaydediyor. Normal tonda söylediği
+cümle sakin referansını, yani **baseline** değerini oluşturuyor. Aceleci bir
+tonla söylediği cümle ise **upperline** referansı oluyor. Her özellik için
+kişinin değerlendirme aralığı, bu iki kayıttaki değerlerin farkıyla belirleniyor.
+
+Sonraki kayıtlar bu iki referansa göre değerlendiriliyor: baseline sıfır,
+upperline bir kabul ediliyor. Yüksek sesli ve kısık sesli iki kişi, kendi
+aralıkları içinde aynı oranda aceleci konuşmaya yaklaştıysa aynı puanı alıyor.
+
+<CalibrationDiagram />
+
+Özellikle önemsediğim ayrıntı, iki referans arasındaki farkın işaretini
+korumak. Çoğu kişi acele ederken daha hızlı konuşuyor; bu durumda artikülasyon
+hızının upperline değeri baseline değerinden yüksek oluyor. Bazılarıysa
+yavaşlayıp daha dikkatli konuşuyor. Formül bu farkı hata saymıyor. Kişinin
+gösterdiği değişim yönünü koruyor; fark negatif olsa da puanı aynı şekilde
+hesaplıyor.
+
+<CodeExcerpt
+  file="app_speech_integrated.py · compare_with_two_anchors()"
+  caption="Kişinin iki referansı arasındaki değişimin hesabı. Negatif farklar için de aynı formül kullanılıyor. Ters yöndeki değişim sıfır sayılıyor; tek bir özelliğin puanı aşırı yükseltmemesi için üst sınır uygulanıyor."
+>
+{`raw_progress = (
+    current_number - baseline_number
+) / gap
+
+`}<span class="cm">{`# Baseline'ın ters yönündeki değişim panik puanı üretmez.`}</span>{`
+`}<span class="hl">{`score_progress = max(raw_progress, 0.0)`}</span>{`
+
+`}<span class="cm">{`# Upperline'ı aşmak mümkündür. 1.25 sınırı, tek özelliğin`}</span>{`
+`}<span class="cm">{`# bütün skoru aşırı şişirmesini engeller.`}</span>{`
+`}<span class="hl">{`score_progress = min(score_progress, 1.25)`}</span>{`
+
+weighted_progress += score_progress * weight
+used_weight += weight`}
+</CodeExcerpt>
+
+Puan altı özellikten hesaplanıyor. Her özelliğin bir ağırlığı ve minimum fark
+eşiği var. Bu eşik, iki referans kaydı arasındaki farkın gürültüden
+kaynaklanmadığını kabul etmek için gereken en küçük değer.
+
+<div class="table-scroll">
+  <table class="data-table">
+    <caption class="visually-hidden">
+      Puanlanan altı prozodik özellik, toplam puandaki ağırlıkları ve iki
+      kalibrasyon kaydı arasında gereken minimum fark.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Özellik</th>
+        <th scope="col">Ağırlık</th>
+        <th scope="col">Minimum fark</th>
+        <th scope="col">Kaynak</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">F0 medyanı</th><td class="num">0.25</td><td class="num">5 Hz</td><td>Praat perde</td></tr>
+      <tr><th scope="row">Ortalama şiddet</th><td class="num">0.20</td><td class="num">2 dB</td><td>Praat şiddet</td></tr>
+      <tr><th scope="row">Artikülasyon hızı</th><td class="num">0.20</td><td class="num">0.30 syll/s</td><td>Whisper kelime zamanlaması</td></tr>
+      <tr><th scope="row">Maksimum şiddet</th><td class="num">0.15</td><td class="num">3 dB</td><td>Praat şiddet</td></tr>
+      <tr><th scope="row">Perde aralığı (p90−p10)</th><td class="num">0.10</td><td class="num">5 Hz</td><td>Praat perde</td></tr>
+      <tr><th scope="row">Duraklama oranı</th><td class="num">0.10</td><td class="num">0.03</td><td>Whisper kelime zamanlaması</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<ThemeFigure
+  light={speechLight}
+  dark={speechDark}
+  width={2400}
+  height={1720}
+  alt="Kaydedilen konuşmanın dalga formu, altında Faster-Whisper’ın tespit ettiği kelimelerin zaman çizelgesi ve en altta ses perdesine ilişkin özet değerler."
+  caption="Analiz motoruyla işlenen gerçek bir kayıt: sesin dalga formu, Faster-Whisper’ın bulduğu kelime sınırları ve çıkarılan perde değerleri. Bu kayıt başlıkla değil, dizüstü bilgisayar mikrofonuyla alındı ve tek bir konuşma örneği içeriyor. Analizin nasıl bir çıktı verdiğini gösteriyor; yöntemin doğrulandığı anlamına gelmiyor."
+  wide
+/>
+
+Zamanlama, enerji tabanlı ses etkinliği tespiti yerine Faster-Whisper’ın kelime
+düzeyindeki zaman damgalarından geliyor. Enerji tabanlı VAD, bir duraklamayı
+sessiz bir odadan ayırt edemiyor ve gürültülü bir başlık mikrofonu durumu daha da
+kötüleştiriyor. Metne dönüştürme sırasında bulunan kelime sınırları, konuşmanın nerede
+durakladığını belirlemek için çok daha iyi bir temel sağlıyor. Heceler, Türkçe ünlüler sayılarak
+yaklaşık olarak bulunuyor. Bu yaklaşık yöntem kodda açıkça belirtiliyor; gerçek bir hece ayırma
+algoritması değil ama bir konuşmacıyı kendisiyle karşılaştırmak için yeterli.
+
+Sistem bilerek iki katman halinde kurulmuş, aralarında bir HTTP köprüsü var.
+
+<ArchitectureDiagram />
+
+Bu ayrımı değerli kılan şey, bütün ölçümün Python’da kalması. Praat, librosa ve
+Faster-Whisper’ın C# tarafında karşılığı yok. Bunların bir kısmını VR projesine
+taşımak, ölçümün ikinci bir uygulamasını yaratırdı ve ikisini birbiriyle uyumlu
+tutmak zorunda kalırdım.
+
+</Chapter>
+
+<Chapter
+  id="refuse"
+  index="03"
+  title="Yanıltıcı puanları önlemek"
+  deck="Buradaki mühendislik çalışmasının büyük kısmı, hangi durumlarda sonuç verilmemesi gerektiğini belirlemekti."
+>
+
+Ekranda bir sayı gördüğümüzde ona güvenmeye eğilimliyiz. Bu yüzden hangi
+durumlarda puan verileceğini dikkatle belirlemek gerekiyor. Bu sistemde en
+çok önemsediğim çalışma, aşağıdaki kalite kontrolleri.
+
+<QualityGateDiagram />
+
+En önemli kontrol, her özellik için ayrı yapılıyor. Baseline ve upperline
+kayıtları bir özellikte yeterince farklı değilse, o özellik kişinin
+durumundaki değişim hakkında bilgi vermiyor. Örneğin iki kayıtta da aynı
+perdeden konuşmuş olabilir. Bunu hesaba katmak yalnızca gürültü ekler. Bu
+yüzden özellik çıkarılıyor, kalanların ağırlıkları yeniden ayarlanarak puan
+hesaplanıyor.
+
+Çok fazla özellik elenirse puan hesaplamak için yeterli bilgi kalmıyor.
+Kullanılabilir özellik sayısı ikinin veya toplam ağırlık 0.40’ın altına
+düşerse kalibrasyon kabul edilmiyor. Kullanıcının referans cümlelerini yeniden
+kaydetmesi gerekiyor.
+
+Kayıt kalitesi bunların hepsinden önce kontrol ediliyor. Tepe değerinin 0.99 veya
+üzerinde olması nedeniyle kırpılma oluşması, 0.02 altında kalması veya
+ötümlü ses içeren çerçevelerin %20’nin altında olması uyarı veriyor. Daha ince bir kontrol daha var. Ses
+etkinliği tespiti, pencerenin %98 veya fazlasının aktif konuşma olduğunu
+bildiriyorsa, bu genellikle gürültülü bir odanın kesintisiz konuşma olarak
+duyulması demek ve buradan türeyen zamanlama öznitelikleri güvenilir değil.
+
+<CodeExcerpt
+  file="baseline_manager.py · evaluate_recording_quality()"
+  caption="Bu kontrol, konuşmacıyı değil ortam gürültüsünü değerlendirmek için var."
+>
+{`if speech_window > 0:
+    active_ratio = active_duration / speech_window
+
+    `}<span class="hl">{`if active_ratio >= 0.98:`}</span>{`
+        warnings.append(
+            "Kayıdın neredeyse tamamı aktif konuşma olarak algılandı. "
+            "Gürültü nedeniyle VAD/sessizlik tespiti güvenilir olmayabilir."
+        )`}
+</CodeExcerpt>
+
+Sevdiğim bir kontrol daha var. Kalibrasyon cümlesinin kendisi doğrulanıyor:
+kişinin söylediğinin deşifresi, söylemesi istenen cümleyle karşılaştırılıyor.
+Yanındaki kişiyle konuşurken kaydedilmiş bir baseline, sonraki bütün puanların
+ölçüldüğü referans haline sessizce gelmemeli.
+
+</Chapter>
+
+<Chapter
+  id="system"
+  index="04"
+  title="Tamamlanmış sistem"
+  deck="Kaydı başlatan tuştan puanın gösterilmesine kadar tüm süreç tek bir bilgisayarda çalışıyor."
+>
+
+<SystemPanel
+  title="Sistem, baştan sona"
+  rows={[
+    'Quest mikrofonundaki sesi Quest Link üzerinden kaydediyor',
+    'Kumanda tuşu, FastAPI servisinin <code>/start</code> ve <code>/stop</code> uç noktalarını çağırıyor',
+    'Faster-Whisper’dan konuşma metnini ve kelimelerin zamanlarını alıyor',
+    'Her kayıttan altı prozodik özellik çıkarıyor: F0 medyanı ve aralığı, ortalama ve maksimum şiddet, artikülasyon hızı, duraklama oranı',
+    'Baseline ve upperline kayıtlarıyla kişisel kalibrasyon profili oluşturuyor ve kullanmadan önce geçerliliğini kontrol ediyor',
+    'VR paneline kişiye göre normalize edilmiş 0-100 arası bir puan döndürüyor',
+    'Sonradan incelenebilmesi için her konuşma kaydını JSON olarak saklıyor, oturum CSV’si ve raporu oluşturuyor',
+  ]}
+/>
+
+<Figure
+  src={questUnity}
+  alt="Üç fotoğraf: dizüstü bilgisayarda analiz kodu üzerinde çalışma, duvardaki ekranda Unity sahnesi çalışırken takılan Quest 3 başlığı ve laboratuvarda sunulan proje posteri."
+  caption="Kodun dışında kalan çalışmalar: analiz motorunun geliştirilmesi, Unity sahnesiyle başlığın kullanılması ve projenin sunumu. Posterdeki değerler yalnızca gösterim amaçlı örnekler; ölçülmüş sonuçlar değil."
+/>
+
+Analiz motoru başlık bağlı olmadan da çalışıyor. Geliştirirken bunu kullandım;
+test etmek de bu sayede kolay. Bir WAV dosyası ve bir cümle, tüm analiz
+sürecini çalıştırmaya yetiyor. VR katmanı yalnızca bir kaydı tetikliyor ve dönen
+sonucu gösteriyor.
+
+</Chapter>

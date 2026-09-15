@@ -1,0 +1,198 @@
+---
+order: 1
+status: ongoing
+title: Low Cost Industrial Robot Arm
+subtitle: Ich möchte einen Arm mit fünf Achsen von Grund auf konstruieren und bauen. Dabei will ich herausfinden, wie präzise eine bewusst kostengünstige Maschine arbeiten kann.
+summary: Ich plane einen selbst konstruierten 5-Achs-Roboterarm mit einem Hardware-Budget von rund 200 €. Er soll nicht nur beweglich sein. Ich möchte untersuchen, welche Wiederholgenauigkeit sich mit sorgfältiger Konstruktion, wenig Getriebespiel, Kalibrierung und Regelung bei diesen Kosten erreichen lässt.
+updated: September 2026
+statusLine: Elegoo Centauri Carbon bestellt · mechanische Architektur und Komponentenauswahl in Planung
+context: Eigenes Projekt
+started: Sep 2026
+focus: Konstruktion, Fertigung, Kalibrierung
+targetLine: 5 Achsen · ~200 € Hardware-Ziel · 3D-gedruckte Struktur
+targets:
+  - key: Achsen
+    value: 5 Gelenkachsen
+  - key: Hardware-Budget
+    value: Ziel von rund 200 €, ohne den 3D-Drucker
+  - key: Struktur
+    value: 3D-gedruckte Strukturteile, wo es sinnvoll ist
+  - key: Backlash
+    value: So wenig Spiel, wie die Konstruktion von Gelenken und Antrieb zulässt
+  - key: Steifigkeit
+    value: Hohe mechanische Steifigkeit über alle fünf Achsen
+  - key: Positionierung
+    value: Wiederholbare Positionierung des Endeffektors
+  - key: Messung
+    value: Kalibrierung und Positionsfehler werden später am gebauten Arm gemessen
+  - key: Integration
+    value: Später automatisiertes Einsetzen von Bauteilen während des 3D-Drucks
+targetsNote: >-
+  Das sind Entwicklungsziele, keine bereits erreichten technischen Daten. Der
+  Arm ist noch nicht gebaut, und es gibt noch keine Messungen.
+currentStatus:
+  - 'Ich habe mich für das Projekt entschieden und mit der Arbeit begonnen.'
+  - 'Der 3D-Drucker Elegoo Centauri Carbon ist bestellt. Auf dieser Maschine sollen die Strukturteile gedruckt werden.'
+  - 'Die mechanische Architektur wird geplant: Gelenkanordnung, Geometrie der Glieder, Lager- und Antriebsanordnung.'
+  - 'Ich plane die Komponentenauswahl. Motoren, Getriebe, Encoder, Treiber und Steuerungselektronik sind noch nicht ausgewählt. Ich möchte lernen, sie anhand der mechanischen Anforderungen auszuwählen.'
+  - 'CAD und physischer Prototypenbau stehen noch aus. Keine gedruckten Teile, keine Montage, keine Messungen.'
+statusNote: >-
+  Ich aktualisiere diese Seite, während das Projekt vorankommt. Werte zu
+  Genauigkeit, Wiederholgenauigkeit und Kosten ergänze ich, sobald der Arm
+  gebaut ist und ich ihn vermessen kann.
+chapters:
+  - { id: 'why', label: 'Warum ich ihn baue' }
+  - { id: 'goal', label: 'Das Ziel' }
+  - { id: 'learn', label: 'Was ich lernen will' }
+  - { id: 'use-case', label: 'Der langfristige Einsatz' }
+  - { id: 'questions', label: 'Technische Fragen' }
+  - { id: 'status', label: 'Aktueller Stand' }
+media:
+  src: ../../../assets/projects/low-cost-robot-arm/arm-concept.png
+  alt: Konzeptillustration eines geplanten Roboterarms mit fünf Achsen, mit graphitfarbenen gerippten Gliedern und gelben Abdeckungen, drehbarer Basis, Schulter- und Ellbogengelenk und einem kompakten Werkzeugflansch am Handgelenk.
+  caption: 'Konzeptillustration: die endgültige mechanische Architektur kann sich während der CAD-Entwicklung noch ändern. Das ist kein Foto gebauter Hardware und kein fertiger Entwurf.'
+seo:
+  description: 'Laufendes Projekt: ein selbst konstruierter 5-Achs-Roboterarm mit rund 200 € Hardware-Budget. Ziel ist, Präzision und Wiederholgenauigkeit günstig zu erreichen.'
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+
+<Chapter
+  id="why"
+  index="01"
+  title="Warum ich ihn baue"
+  deck="Bisher habe ich vor allem an der Softwareseite der Robotik gearbeitet. Mit diesem Projekt möchte ich gezielt meine Lücken in der Mechanik angehen."
+>
+
+Meine bisherigen Projekte lagen überwiegend im Softwarebereich: Roboterprogrammierung,
+Automatisierung, maschinelles Lernen. Der Writing Robot auf dieser Seite ist ein
+gutes Beispiel. Ich habe einen Generator geschrieben, der Text in FANUC-Bewegung
+umsetzt, und die größte Schwierigkeit lag am Ende in der Mechanik. Die
+Linie kam nicht gleichmäßig heraus, und keine noch so genaue Kalibrierung in der
+Software hat das behoben. Eine Feder im Stifthalter schon.
+
+Das ist mir in Erinnerung geblieben. Das Problem lag nicht im Code, und mir
+fehlte das mechanische Wissen, um es vorher zu erkennen. Deshalb konzentriere
+ich mich jetzt bewusst auf die Konstruktion: eine Maschine selbst entwerfen,
+ihre Teile drucken, sie montieren und anschließend messen, wo die Fehler
+liegen.
+
+Industriearme wie der FANUC, an dem ich gearbeitet habe, sind die Referenz für die
+*Art* von Denken, die ich lernen will: wie eine Maschine steif gemacht wird, wie
+Gelenke gelagert werden, wie Bewegung ohne Spiel übertragen wird. Mir geht es um
+diese Überlegungen, nicht um Kosten oder Spezifikation.
+
+</Chapter>
+
+<Chapter
+  id="goal"
+  index="02"
+  title="Das Ziel"
+  deck="Einen Arm zu bewegen ist der einfache Teil. Die eigentliche Aufgabe ist, dieselbe Position wiederholt zu erreichen."
+>
+
+Ich plane einen Gelenkarm mit fünf Achsen. Seine Strukturteile sollen auf
+einem Elegoo Centauri Carbon gedruckt werden. Für die Hardware peile ich
+derzeit rund 200 € an, ohne den Drucker selbst. Das ist mein Budgetziel für
+die Konstruktion. Eine durchgerechnete Stückliste, die dieses Budget
+einhält, habe ich noch nicht.
+
+Besonders wichtig ist mir die Wiederholgenauigkeit. Ich will
+herausfinden, wie viel Präzision und mechanische Stabilität sich einer so
+günstig gebauten Maschine abgewinnen lassen und welche Entscheidungen auf dem Weg
+am meisten ausmachen:
+
+<SpecList
+  items={[
+    { key: 'Struktur', value: 'Steifigkeit der gedruckten Glieder, und wo sie zuerst nachgeben werden' },
+    { key: 'Gelenke', value: 'Gelenkauslegung und Lagerung an jeder Achse' },
+    { key: 'Antrieb', value: 'Backlash, und welche Antriebslösungen ihn verringern' },
+    { key: 'Aktorik', value: 'Aktorauswahl, abgeleitet aus den mechanischen Anforderungen' },
+    { key: 'Toleranzen', value: 'Drucktoleranzen, Passungen und aufsummiertes Spiel' },
+    { key: 'Regelung', value: 'Kalibrierung und Regelung, sobald die Mechanik bekannt ist' },
+  ]}
+/>
+
+Auf dieser Seite stehen keine Genauigkeitswerte, und es werden auch keine
+dazukommen, bevor ich den Arm gebaut und gemessen habe. Ich weiß noch nicht, welche
+Genauigkeit er erreichen wird.
+
+</Chapter>
+
+<Chapter
+  id="learn"
+  index="03"
+  title="Was ich lernen will"
+  deck="Ich habe konkret aufgeschrieben, was ich lernen möchte. Diese Fähigkeiten sind mir wichtiger als der fertige Arm allein."
+>
+
+- **SolidWorks und CAD.** Echte Teile für die Fertigung entwerfen, keine Skizzen.
+- **Konstruktion.** Wie Kräfte durch eine Struktur wirken, wo sie sich verformt und wie man das verhindert.
+- **Gelenkaufbau.** Wie eine Achse tatsächlich zusammengehalten und gelagert wird.
+- **Toleranzen und Passungen.** Für das entwerfen, was ein Drucker wirklich liefert.
+- **Lager.** Auswahl, Vorspannung und ihr Anteil an der Steifigkeit eines Gelenks.
+- **Antriebe.** Riemen, Zahnräder, Untersetzung und der Backlash, den jede Wahl mitbringt.
+- **Aktorauswahl.** Motoren über Drehmoment und Trägheit auslegen statt raten.
+- **Fertigung und Montage.** Teile drucken, nacharbeiten und so montieren, dass sie passen.
+- **Kalibrierung.** Die tatsächlichen Bewegungen messen und Abweichungen korrigieren.
+- **Fehlerfortpflanzung.** Wie aus einem kleinen Fehler an der Basis ein großer am Werkzeug wird.
+
+Das größere Ziel ist, ein Ingenieur zu sein, der ein System von der Konstruktion
+bis zur Software und Regelung entwickeln kann, statt nur an der digitalen Seite
+zu arbeiten.
+
+</Chapter>
+
+<Chapter
+  id="use-case"
+  index="04"
+  title="Der langfristige Einsatz"
+  deck="Präzision ist hier deshalb wichtig, weil es eine bestimmte Aufgabe gibt, die der Arm übernehmen soll."
+>
+
+Das langfristige Ziel ist, den Arm an meinen 3D-Druck-Ablauf anzubinden, sodass
+Drucker und Roboter gemeinsam an demselben Teil arbeiten:
+
+<SystemPanel
+  title="Der Ablauf, auf den ich hinarbeite"
+  rows={[
+    'Der Drucker beginnt mit dem Bauteil und pausiert an einer vorher festgelegten Stelle.',
+    'Der Arm fährt an das teilweise gedruckte Teil heran.',
+    'Er setzt ein nicht druckbares Bauteil in eine vorbereitete Aussparung, etwa ein Lager, ein Zahnrad oder einen Metalleinsatz.',
+    'Der Arm zieht sich aus dem Druckbereich zurück.',
+    'Der Drucker läuft weiter und druckt um das eingesetzte Bauteil herum.',
+  ]}
+/>
+
+Das ist ein Ziel, noch keine vorhandene Funktion. Es erklärt aber, warum
+die Mechanik hier entscheidend ist. Um ein kleines Bauteil in einen
+halbfertigen Druck einzusetzen, müsste der Arm dieselbe Position zuverlässig
+erreichen. Dabei dürfte er weder den Druck anstoßen noch bereits gedruckte
+Schichten beschädigen. Daran richten sich die übrigen Anforderungen aus.
+
+</Chapter>
+
+<Chapter
+  id="questions"
+  index="05"
+  title="Technische Fragen"
+  deck="Diese Fragen schreibe ich vor dem Bau auf. Später möchte ich meine Ergebnisse daran prüfen."
+>
+
+- Wie viel Präzision kann ein günstiger, überwiegend gedruckter Roboter realistisch erreichen?
+- Woher kommt der Positionsfehler eigentlich? Aus der Struktur, den Gelenken, dem
+  Antrieb oder der Regelung?
+- Welche mechanischen Fehler lassen sich durch Kalibrierung ausgleichen, und
+  welche kann die Software nicht korrigieren?
+- Ab wann hilft es nicht mehr, die Software zu verbessern, weil die Mechanik
+  die Grenze setzt?
+- Wie steif kann eine überwiegend 3D-gedruckte Struktur über fünf Gelenkachsen
+  bleiben, und welche Achse gibt zuerst nach?
+
+Bei einigen davon erwarte ich unbequeme Antworten. Sie vor dem Bauen
+aufzuschreiben gehört dazu, denn so ist es schwerer, das Ziel später still und
+leise zu verschieben.
+
+</Chapter>

@@ -1,0 +1,293 @@
+---
+/**
+ * One header dropdown: a disclosure button and the compact panel it owns.
+ *
+ * Both Work and Ongoing are this component. The two menus have to belong to the
+ * same navigation system, and the reliable way to guarantee that is for them to
+ * BE the same component — width, typography, row spacing, borders, hover, focus,
+ * chevron and animation come from one place, so they cannot drift apart later.
+ *
+ * What differs between them is data, not design: the rows, the optional leading
+ * index, and the footer link. Ongoing rows carry no index on purpose — a number
+ * would read as a ranking among finished work, which is the distinction the two
+ * menus exist to draw.
+ *
+ * Click, not hover. A hover-opened menu is unusable with a keyboard, unreachable
+ * on touch, and opens itself on the way past — so the trigger is a real button
+ * with aria-expanded, and pointing at it does nothing. navMenus.ts wires the
+ * behaviour and keeps at most one panel open.
+ */
+export interface NavMenuRow {
+  title: string;
+  href: string;
+  /** Leading number. Omitted for collections that are not a ranked list. */
+  index?: string;
+  /** One short discipline line under the title. */
+  meta?: string;
+  /**
+   * Marks the row the visitor is already on. Used by the Language menu for the
+   * active language: it sets aria-current so the state is announced, and draws
+   * one small mark rather than recolouring or reweighting the row.
+   */
+  current?: boolean;
+  /** Overrides the row's own language, so "Deutsch" is announced as German. */
+  lang?: string;
+}
+
+interface Props {
+  id: string;
+  label: string;
+  rows: NavMenuRow[];
+  listLabel: string;
+  /** Shown when the collection behind this menu is empty. */
+  emptyLabel: string;
+  /** Footer link. Omitted when there is nowhere useful to send the visitor. */
+  footer?: { label: string; href: string };
+}
+
+const { id, label, rows, listLabel, emptyLabel, footer } = Astro.props;
+const panelId = `${id}-menu`;
+---
+
+<li class="header__navItem" data-nav-menu>
+  <button
+    class="header__disclosure draw-link"
+    type="button"
+    data-nav-toggle
+    aria-expanded="false"
+    aria-controls={panelId}
+  >
+    {label}
+    <svg
+      class="header__chev"
+      width="10"
+      height="7"
+      viewBox="0 0 10 7"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M1 1.5 5 5.5 9 1.5"
+        stroke="currentColor"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+      />
+    </svg>
+  </button>
+
+  <div class="workMenu" id={panelId} data-nav-panel hidden>
+    {
+      rows.length > 0 ? (
+        <ul class="workMenu__list" role="list" aria-label={listLabel}>
+          {rows.map((row) => (
+            <li>
+              <a
+                class:list={['workMenu__item', { 'workMenu__item--plain': !row.index }]}
+                href={row.href}
+                hreflang={row.lang}
+                lang={row.lang}
+                aria-current={row.current ? 'true' : undefined}
+              >
+                {row.index && <span class="workMenu__index mono">{row.index}</span>}
+                <span class="workMenu__text">
+                  <span class="workMenu__title">{row.title}</span>
+                  {row.meta && <span class="workMenu__meta mono">{row.meta}</span>}
+                </span>
+                {row.current && (
+                  <svg
+                    class="workMenu__check"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M2 6.4 4.6 9 10 3"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      fill="none"
+                    />
+                  </svg>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="workMenu__empty mono">{emptyLabel}</p>
+      )
+    }
+    {
+      footer && (
+        <a class="workMenu__all mono" href={footer.href}>
+          {footer.label} <span class="arrow" aria-hidden="true">&#8594;</span>
+        </a>
+      )
+    }
+  </div>
+</li>
+
+<style>
+  /* Work is a disclosure button, not a link, because it owns a panel. It is
+     styled to sit in the same line as its two sibling links — same size, same
+     underline — so the change of element is invisible until it is used. */
+  .header__navItem {
+    position: relative;
+  }
+
+  .header__disclosure {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 0 2px;
+    background: none;
+    border: 0;
+    font: inherit;
+    font-size: var(--text-small);
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .header__chev {
+    transition: transform var(--dur-fast) var(--ease-inout);
+  }
+
+  .header__disclosure[aria-expanded='true'] .header__chev {
+    transform: rotate(180deg);
+  }
+
+  .header__disclosure[aria-expanded='true']::after {
+    transform: scaleX(1);
+  }
+
+  /* The panel hangs from the trigger's right edge and opens leftwards. Work is
+     the leftmost item in a right-aligned nav, so anchoring it the other way
+     would push a 27rem panel off the right of a 1024px viewport. */
+  .workMenu {
+    position: absolute;
+    inset-block-start: calc(100% + var(--space-4));
+    inset-inline-end: 0;
+    z-index: 1;
+    width: min(27rem, calc(100vw - var(--gutter) * 2));
+    padding: var(--space-3);
+    background: var(--bg);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-raised);
+  }
+
+  .workMenu[hidden] {
+    display: none;
+  }
+
+  .workMenu__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .workMenu__item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-3);
+    align-items: baseline;
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: background-color var(--dur-fast) var(--ease-inout);
+  }
+
+  .workMenu__item:hover,
+  .workMenu__item:focus-visible {
+    background: var(--surface-sunken);
+  }
+
+  .workMenu__index {
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .workMenu__item:hover .workMenu__index,
+  .workMenu__item:focus-visible .workMenu__index {
+    color: var(--accent-text);
+  }
+
+  .workMenu__text {
+    display: grid;
+    gap: 2px;
+  }
+
+  .workMenu__title {
+    font-size: var(--text-small);
+    font-weight: 500;
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+
+  .workMenu__meta {
+    color: var(--text-muted);
+  }
+
+  .workMenu__all {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-2);
+    padding: var(--space-3);
+    border-block-start: 1px solid var(--border-hairline);
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+
+  .workMenu__all:hover,
+  .workMenu__all:focus-visible {
+    color: var(--text-primary);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .workMenu:not([hidden]) {
+      animation: work-in var(--dur-fast) var(--ease-out) both;
+    }
+  }
+
+  @keyframes work-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+
+  /* A row with no leading index collapses to a single column, so the title
+     starts at the same inset the index would have occupied in the other menu. */
+  .workMenu__item--plain {
+    grid-template-columns: 1fr;
+  }
+
+  /* The active language. One mark in the accent colour, at the end of the row.
+     The row itself is not recoloured, not made bold and not given a filled
+     background: the menu holds three items and only one of them can be current,
+     so a tick is enough and anything more would shout. */
+  .workMenu__item[aria-current] {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .workMenu__item--plain[aria-current] {
+    grid-template-columns: 1fr auto;
+  }
+
+  .workMenu__check {
+    align-self: center;
+    color: var(--accent-text);
+  }
+
+  .workMenu__empty {
+    padding: var(--space-3);
+    margin: 0;
+    color: var(--text-muted);
+  }
+</style>

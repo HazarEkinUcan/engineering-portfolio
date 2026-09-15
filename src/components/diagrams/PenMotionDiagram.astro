@@ -1,0 +1,135 @@
+---
+import DiagramFrame from './DiagramFrame.astro';
+
+/**
+ * Project 1, diagram 2 — the pen-lift state machine against a Z-height
+ * profile, carrying the FINE / CNT10 termination decision.
+ * The Z profile is geometry, so it is drawn as SVG; every label is real
+ * text in the HTML around and inside it.
+ */
+import { diagramsFor } from '../../i18n/diagrams';
+
+const t = diagramsFor(Astro.url).penMotion;
+
+/* Heights, speeds and termination types are data and stay here. A translation
+   supplies the state's name and what it does, never a number. */
+const terms = ['100 mm/sec · CNT10', '20 mm/sec · FINE', '20 mm/sec · CNT10', '100 mm/sec · FINE'];
+const states = t.states.map((state, i) => ({ ...state, term: terms[i] ?? '', key: i === 1 || i === 3 }));
+---
+
+<DiagramFrame
+  label={t.label}
+  caption={t.caption}
+>
+  <div class="pen">
+    <svg
+      class="pen__plot"
+      viewBox="0 0 640 200"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={t.plotAlt}
+    >
+      <g class="pen__grid">
+        <line x1="0" y1="40" x2="640" y2="40"></line>
+        <line x1="0" y1="150" x2="640" y2="150"></line>
+      </g>
+      <path class="pen__path" d="M8 40 H150 L200 150 H440 L490 40 H632"></path>
+      <g class="pen__nodes">
+        <rect x="146" y="36" width="8" height="8"></rect>
+        <rect x="196" y="146" width="8" height="8"></rect>
+        <rect x="436" y="146" width="8" height="8"></rect>
+        <rect x="486" y="36" width="8" height="8"></rect>
+      </g>
+    </svg>
+
+    <div class="pen__axis">
+      <span class="mono">Z = 10 mm · {t.safe}</span>
+      <span class="mono">Z = 0 mm · {t.paper}</span>
+    </div>
+
+    <ol class="pen__states" role="list">
+      {
+        states.map((state) => (
+          <li class:list={{ 'is-key': state.key }}>
+            <span class="label">{state.name}</span>
+            <span class="pen__desc">{state.desc}</span>
+            <span class="mono pen__term">{state.term}</span>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</DiagramFrame>
+
+<style>
+  .pen {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .pen__plot {
+    width: 100%;
+    height: clamp(120px, 22vw, 190px);
+  }
+
+  .pen__grid line {
+    stroke: var(--border-hairline);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 3 4;
+  }
+
+  .pen__path {
+    fill: none;
+    stroke: var(--text-primary);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .pen__nodes rect {
+    fill: var(--accent);
+  }
+
+  .pen__axis {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+  }
+
+  .pen__states {
+    list-style: none;
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .pen__states li {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-3) 0;
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .pen__states li.is-key .pen__term {
+    color: var(--accent-text);
+    font-weight: 500;
+  }
+
+  .pen__desc {
+    font-size: var(--text-small);
+  }
+
+  .pen__term {
+    color: var(--text-muted);
+  }
+
+  @media (width >= 768px) {
+    .pen__states {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-5);
+    }
+  }
+</style>

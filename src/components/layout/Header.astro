@@ -1,0 +1,465 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+import NavMenu from './NavMenu.astro';
+import type { NavMenuRow } from './NavMenu.astro';
+import { site, nav, projectNavMeta } from '../../data/site';
+import { LOCALE_LABEL, HTML_LANG, type Locale } from '../../i18n/locales';
+import { alternates, href } from '../../i18n/paths';
+import { t } from '../../i18n/ui';
+import { getOngoing, getProjects } from '../../i18n/collections';
+
+interface Props {
+  locale: Locale;
+  readingProgress?: boolean;
+}
+const { locale, readingProgress = false } = Astro.props;
+const ui = t(locale);
+
+const path = Astro.url.pathname;
+const isCurrent = (target: string) =>
+  target.includes('#')
+    ? path === href('/', locale)
+    : path === target || path.startsWith(target + '/');
+
+/* The Work menu is derived from the projects collection rather than listed by
+   hand, so its order and numbering are the homepage's order and numbering by
+   construction. It reads the collection for THIS locale only, so a language
+   with a project still untranslated shows a shorter menu rather than an
+   English row inside a translated panel. */
+const projectLinks: NavMenuRow[] = (await getProjects(locale)).map((row, index) => ({
+  index: String(index + 1).padStart(2, '0'),
+  title: row.entry.data.title,
+  meta: projectNavMeta[row.slug] ?? (row.entry.data.stack ?? []).slice(0, 3).join(' · '),
+  href: href(`/projects/${row.slug}`, locale),
+}));
+
+/* The Ongoing menu comes from its own collection, in its own order field, and
+   never from `projects`. The descriptor is the entry's existing `focus` line
+   rather than a table maintained for the menu alone — commas become the site's
+   own separator. No index: a number here would read as a ranking among finished
+   work, which is exactly the distinction this menu exists to draw.
+
+   An empty collection is a supported state, not an edge case: rows becomes [],
+   NavMenu shows its empty label, and the footer link is dropped because the
+   homepage section it points at is itself conditional on there being entries. */
+const ongoingLinks: NavMenuRow[] = (await getOngoing(locale)).map((row) => ({
+  title: row.entry.data.title,
+  meta: row.entry.data.focus?.split(',').map((part) => part.trim()).filter(Boolean).join(' · '),
+  href: href(`/projects/${row.slug}`, locale),
+}));
+
+/* The Language menu is the same component again, so it inherits the panel's
+   width, spacing, hover and keyboard behaviour without a second implementation.
+   Each row is this same page in another language, not the homepage: the URL is
+   the only thing that selects a language, and losing the reader's place would
+   make switching cost something.
+
+   Names are written in their own language — English, Türkçe, Deutsch — because
+   that is what a reader who wants that language will recognise. No flags: a
+   flag names a country, and none of these three languages belongs to one. */
+const languageRows: NavMenuRow[] = alternates(path).map((alt) => ({
+  title: LOCALE_LABEL[alt.locale],
+  href: alt.path,
+  lang: HTML_LANG[alt.locale],
+  current: alt.locale === locale,
+}));
+
+const panelRows: Record<string, NavMenuRow[]> = {
+  work: projectLinks,
+  ongoing: ongoingLinks,
+};
+
+const panelConfig = {
+  work: {
+    listLabel: ui.menus.projectsLabel,
+    emptyLabel: ui.menus.noProjects,
+    footerLabel: ui.menus.viewAllWork,
+  },
+  ongoing: {
+    listLabel: ui.menus.ongoingLabel,
+    emptyLabel: ui.menus.noOngoing,
+    footerLabel: ui.menus.viewOngoing,
+  },
+} as const;
+---
+
+<header class="header" data-header>
+  <div class="header__inner">
+    <a class="header__mark" href={href('/', locale)}>{site.shortName}</a>
+
+    <nav class="header__nav" aria-label={ui.nav.primaryLabel}>
+      <ul role="list">
+        {
+          nav.map((item) =>
+            item.panel ? (
+              <NavMenu
+                id={item.panel}
+                label={ui.nav[item.key]}
+                rows={panelRows[item.panel] ?? []}
+                listLabel={panelConfig[item.panel].listLabel}
+                emptyLabel={panelConfig[item.panel].emptyLabel}
+                footer={
+                  (panelRows[item.panel] ?? []).length > 0
+                    ? {
+                        label: panelConfig[item.panel].footerLabel,
+                        href: href(item.href, locale),
+                      }
+                    : undefined
+                }
+              />
+            ) : (
+              <li>
+                <a
+                  class="draw-link"
+                  href={href(item.href, locale)}
+                  aria-current={
+                    isCurrent(href(item.href, locale)) && !item.href.includes('#')
+                      ? 'page'
+                      : undefined
+                  }
+                >
+                  {ui.nav[item.key]}
+                </a>
+              </li>
+            ),
+          )
+        }
+        <NavMenu
+          id="language"
+          label={ui.nav.language}
+          rows={languageRows}
+          listLabel={ui.menus.languageLabel}
+          emptyLabel={ui.menus.languageLabel}
+        />
+      </ul>
+      <ThemeToggle locale={locale} />
+    </nav>
+
+    <button
+      class="header__menu"
+      type="button"
+      data-menu-toggle
+      aria-expanded="false"
+      aria-controls="menu-panel"
+    >
+      <span>{ui.nav.menu}</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path d="M1 4h14M1 8h14M1 12h14" stroke="currentColor" stroke-width="1.4" fill="none" />
+      </svg>
+    </button>
+  </div>
+
+  {readingProgress && <div class="header__progress" data-reading-progress aria-hidden="true" />}
+
+  <div class="menu" id="menu-panel" data-menu-panel hidden>
+    <ul class="menu__links" role="list">
+      {
+        nav.map((item) => (
+          <li>
+            <a href={href(item.href, locale)}>{ui.nav[item.key]}</a>
+            {item.panel &&
+              ((panelRows[item.panel] ?? []).length > 0 ? (
+                <ul
+                  class="menu__projects"
+                  role="list"
+                  aria-label={panelConfig[item.panel].listLabel}
+                >
+                  {(panelRows[item.panel] ?? []).map((row) => (
+                    <li>
+                      <a class="menu__project" href={row.href}>
+                        {row.index && <span class="menu__projectIndex mono">{row.index}</span>}
+                        <span class="menu__projectText">
+                          <span class="menu__projectTitle">{row.title}</span>
+                          {row.meta && <span class="menu__projectMeta mono">{row.meta}</span>}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="menu__empty mono">{panelConfig[item.panel].emptyLabel}</p>
+              ))}
+          </li>
+        ))
+      }
+      <li>
+        <h2 class="menu__languageLabel" id="menu-language">{ui.nav.language}</h2>
+        <ul class="menu__projects" role="list" aria-labelledby="menu-language">
+          {languageRows.map((row) => (
+            <li>
+              <a
+                class="menu__project menu__project--language"
+                href={row.href}
+                hreflang={row.lang}
+                lang={row.lang}
+                aria-current={row.current ? 'true' : undefined}
+              >
+                <span class="menu__projectText">
+                  <span class="menu__projectTitle">{row.title}</span>
+                </span>
+                {row.current && (
+                  <svg
+                    class="menu__check"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 12 12"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M2 6.4 4.6 9 10 3"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      fill="none"
+                    />
+                  </svg>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </li>
+    </ul>
+    <div class="menu__foot">
+      <a class="mono" href={`mailto:${site.email}`}>{site.email}</a>
+      <ThemeToggle locale={locale} />
+    </div>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: var(--header-h);
+    background: transparent;
+    border-block-end: 1px solid transparent;
+    transition:
+      background-color var(--dur-base) var(--ease-inout),
+      border-color var(--dur-base) var(--ease-inout);
+  }
+
+  /* Opacity and colour only — the height never changes, so nothing reflows. */
+  .header.is-scrolled {
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    border-block-end-color: var(--border-hairline);
+  }
+
+  @supports not (background: color-mix(in srgb, red 50%, blue)) {
+    .header.is-scrolled {
+      background: var(--bg);
+    }
+  }
+
+  .header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    height: 100%;
+    width: min(100%, var(--w-media));
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .header__mark {
+    font-family: var(--font-mono);
+    font-size: var(--text-mono);
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .header__nav {
+    display: none;
+    align-items: center;
+    gap: var(--space-6);
+  }
+
+  /* Direct children only: the Work panel nests its own list and its own links
+     inside this nav, and neither should inherit the top-level row layout. */
+  .header__nav > ul {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header__nav > ul > li > a {
+    font-size: var(--text-small);
+  }
+
+  .header__nav > ul > li > a[aria-current='page']::after {
+    transform: scaleX(1);
+  }
+
+  .header__menu {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding-inline: var(--space-3);
+    margin-inline-end: calc(var(--space-3) * -1);
+    background: none;
+    border: 0;
+    font-size: var(--text-small);
+    cursor: pointer;
+  }
+
+  .header__progress {
+    position: absolute;
+    inset-block-end: -1px;
+    inset-inline-start: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  .menu {
+    position: fixed;
+    inset: var(--header-h) 0 0;
+    background: var(--bg);
+    padding: var(--space-7) var(--gutter);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    /* Four sections with two nested project lists no longer fit a short phone —
+       measured 64px over on a 390x844 screen and 241px over at 667 tall. The
+       sheet has to carry its own scroll, because opening it locks the body's. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .menu[hidden] {
+    display: none;
+  }
+
+  .menu__links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .menu__links a {
+    font-size: var(--text-h2);
+    font-weight: 600;
+    letter-spacing: var(--track-h2);
+    text-decoration: none;
+  }
+
+  /* The same four projects, nested under Work inside the mobile sheet. They are
+     always visible rather than behind a second tap: the sheet is full height
+     and there is room, and one tap to a project beats two. */
+  .menu__projects {
+    display: grid;
+    gap: 2px;
+    margin-block-start: var(--space-3);
+    padding: 0;
+    list-style: none;
+    border-inline-start: 1px solid var(--border-hairline);
+  }
+
+  .menu__project {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-3);
+    align-items: baseline;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-4);
+    text-decoration: none;
+  }
+
+  .menu__projectIndex {
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .menu__projectText {
+    display: grid;
+    gap: 2px;
+  }
+
+  .menu__projectTitle {
+    font-size: var(--text-body);
+    font-weight: 500;
+    line-height: 1.35;
+  }
+
+  .menu__projectMeta {
+    color: var(--text-muted);
+  }
+
+  /* Language is a heading, not a link: there is no "language page" to open, and
+     the three choices below it are the control. It is typeset exactly like the
+     four nav links above it so the sheet reads as one list. */
+  .menu__languageLabel {
+    font-size: var(--text-h2);
+    font-weight: 600;
+    letter-spacing: var(--track-h2);
+  }
+
+  .menu__project--language {
+    grid-template-columns: 1fr auto;
+  }
+
+  .menu__check {
+    align-self: center;
+    color: var(--accent-text);
+  }
+
+  .menu__empty {
+    margin-block-start: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border-inline-start: 1px solid var(--border-hairline);
+    color: var(--text-muted);
+  }
+
+  .menu__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-block-start: var(--space-6);
+    border-block-start: 1px solid var(--border-hairline);
+    color: var(--text-secondary);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .menu:not([hidden]) .menu__links > li {
+      animation: menu-in var(--dur-base) var(--ease-out) both;
+      animation-delay: calc(var(--i, 0) * 60ms);
+    }
+    .menu__links > li:nth-child(1) { --i: 0; }
+    .menu__links > li:nth-child(2) { --i: 1; }
+    .menu__links > li:nth-child(3) { --i: 2; }
+    .menu__links > li:nth-child(4) { --i: 3; }
+    .menu__links > li:nth-child(5) { --i: 4; }
+  }
+
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  @media (width >= 1024px) {
+    .header__nav {
+      display: flex;
+    }
+    .header__menu,
+    .menu {
+      display: none;
+    }
+  }
+</style>

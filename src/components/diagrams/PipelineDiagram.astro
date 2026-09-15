@@ -1,0 +1,166 @@
+---
+import DiagramFrame from './DiagramFrame.astro';
+
+import { diagramsFor } from '../../i18n/diagrams';
+
+/** Project 1, diagram 1 — text in, motion program out. */
+const t = diagramsFor(Astro.url).pipeline;
+
+/* The three filenames are filenames, not copy, so they stay here; the note
+   beside each one is a sentence and comes from the dictionary. */
+const outputs = ['writing_preview.svg', 'writing_points.csv', 'ISIM.LS'].map((name, i) => ({
+  name,
+  note: t.outputNotes[i] ?? '',
+}));
+---
+
+<DiagramFrame
+  label={t.label}
+  caption={t.caption}
+>
+  <div class="pipe">
+    <ol class="pipe__stages" role="list">
+      {
+        t.stages.map((stage, i) => (
+          <li class="pipe__stage">
+            <span class="pipe__num mono">{String(i + 1).padStart(2, '0')}</span>
+            <span class="pipe__key label">{stage.key}</span>
+            <span class="pipe__title">{stage.title}</span>
+            <span class="pipe__note mono">{stage.note}</span>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="pipe__outputs">
+      <p class="label pipe__outLabel">{t.outputsLabel}</p>
+      <ul role="list">
+        {
+          outputs.map((output) => (
+            <li>
+              <span class="pipe__file mono">{output.name}</span>
+              <span class="pipe__note mono">{output.note}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</DiagramFrame>
+
+<style>
+  .pipe {
+    display: grid;
+    gap: var(--space-7);
+  }
+
+  .pipe__stages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .pipe__stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'num key'
+      'num title'
+      'num note';
+    gap: 2px var(--space-4);
+    padding: var(--space-4) var(--space-4) var(--space-4) 0;
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .pipe__num {
+    grid-area: num;
+    align-self: start;
+    color: var(--text-muted);
+    padding-block-start: 0.15em;
+  }
+
+  .pipe__key {
+    grid-area: key;
+  }
+
+  .pipe__title {
+    grid-area: title;
+    font-size: var(--text-small);
+    font-weight: 500;
+  }
+
+  .pipe__note {
+    grid-area: note;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .pipe__outputs ul {
+    list-style: none;
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .pipe__outputs li {
+    display: grid;
+    gap: 2px;
+    padding-inline-start: var(--space-4);
+    border-inline-start: 2px solid var(--accent);
+  }
+
+  .pipe__file {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* Horizontal flow once there is room; restacks below 768px. */
+  @media (width >= 768px) {
+    .pipe__stages {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-5);
+    }
+
+    .pipe__stage {
+      padding: var(--space-4) var(--space-5) var(--space-5) 0;
+    }
+
+    /* A chevron between stages, in reading order. */
+    .pipe__stage:not(:nth-child(3n))::after {
+      content: '';
+      position: absolute;
+      inset-block-start: var(--space-5);
+      inset-inline-end: var(--space-2);
+      width: 6px;
+      height: 6px;
+      border-block-start: 1px solid var(--border-ui);
+      border-inline-end: 1px solid var(--border-ui);
+      transform: rotate(45deg);
+    }
+  }
+
+  /* The outputs move beside the stages only at the width where the section rail
+     also appears. Between 1024 and 1279 they stay stacked underneath, so the
+     three stages keep the full content width. */
+  @media (width >= 1280px) {
+    /* Both tracks are bounded. `auto` on the outputs column sized it to its own
+       max-content, which is a column of full sentences, so it took almost the
+       whole row and squeezed the three stages into about 50px each. Their text
+       then spilled sideways and landed on the next stage. A ratio with a floor
+       on the outputs keeps the stages readable and the outputs intact. */
+    .pipe {
+      grid-template-columns: minmax(0, 2fr) minmax(17rem, 1fr);
+      gap: var(--space-8);
+      align-items: start;
+    }
+
+    .pipe__outputs {
+      padding-inline-start: var(--space-7);
+      border-inline-start: 1px solid var(--border-hairline);
+    }
+  }
+</style>

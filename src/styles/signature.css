@@ -1,0 +1,71 @@
+/* ---------------------------------------------------------------------------
+   signature.css — the hero mark, as static SVG.
+
+   The SVG is real output from fanuc_writer_ls.py. Each <polyline> in
+   .signature__draw is one pen-down stroke and carries three custom properties
+   written by scripts/build-signature.mjs:
+
+     --len   path length in user units
+     --d     start delay, scaled to the generator's 1200 ms budget
+     --t     duration, proportional to the stroke's real length
+
+   Nothing here reads them any more. They stay because the 3D hero reads them
+   straight off these elements at runtime — see src/lib/robot/signature.ts —
+   rather than shipping a second copy of the schedule. Delays come from the
+   generator's own feed rates, 20 mm/sec writing against 100 mm/sec travel, so
+   the cadence is the robot's and not a designer's.
+
+   What this file styles is the POSTER: the completed signature, which is the
+   LCP element and the whole hero in every branch where the robot does not run
+   — no JavaScript, reduced motion, no WebGL, or simply the first second while
+   the chunk loads. It is never animated. When the robot takes over it redraws
+   the writing itself, on its own clock, in its own renderer; animating the
+   poster as well would mean two schedules for one mark.
+
+   design-spec.md §6.
+--------------------------------------------------------------------------- */
+
+@layer components {
+  .signature {
+    width: 100%;
+    height: auto;
+    color: var(--text-primary);
+  }
+
+  .signature__draw {
+    stroke: currentColor;
+    /* The SVG carries stroke-width="1.4" — the generator's real pen width in
+       millimetres — with non-scaling-stroke, so it would render as a 1.4px
+       hairline at any size. Against a solid machine that disappears. The
+       geometry is untouched; only the drawing weight is a display choice. */
+    stroke-width: 2;
+  }
+
+  @media (width < 1024px) {
+    .signature__draw {
+      stroke-width: 1.6;
+    }
+  }
+
+  /* Pen-up moves, in the accent, the way the generator distinguishes them. */
+  .signature__travel {
+    stroke: var(--accent);
+    opacity: 0.55;
+  }
+
+  /* Pen-down nodes belong to the drawing sequence, which the poster does not
+     have. They stay in the markup for the 3D scene's benefit and stay hidden
+     here rather than littering a finished mark with markers. */
+  .signature__nodes {
+    fill: var(--accent);
+  }
+
+  .signature__nodes rect {
+    opacity: 0;
+  }
+
+  .signature__draw polyline {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}

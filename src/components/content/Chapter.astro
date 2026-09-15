@@ -1,0 +1,42 @@
+---
+/**
+ * One of the four case-study chapters. The ten narrative beats are the
+ * content model behind these; their numbers never reach the page.
+ * site-plan.md §5.1a.
+ */
+interface Props {
+  id: string;
+  index: string;
+  title: string;
+  deck: string;
+}
+const { id, index, title, deck } = Astro.props;
+---
+
+<section class="chapter defer-render" id={id} aria-labelledby={`${id}-title`}>
+  <p class="chapter__index label">{index}</p>
+  <h2 class="chapter__title reveal" id={`${id}-title`}>{title}</h2>
+  <p class="chapter__deck deck reveal">{deck}</p>
+  <slot />
+</section>
+
+<style>
+  .chapter {
+    padding-block-start: var(--space-10);
+  }
+
+  .chapter__index {
+    color: var(--text-muted);
+    margin-block-end: var(--space-3);
+  }
+
+  .chapter__title {
+    max-width: 20ch;
+  }
+
+  .chapter__deck {
+    margin-block-start: var(--space-4);
+    max-width: 46ch;
+  }
+
+</style>

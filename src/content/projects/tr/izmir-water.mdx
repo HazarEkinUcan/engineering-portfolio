@@ -1,0 +1,317 @@
+---
+order: 3
+status: published
+title: İzmir Reservoir and Water Consumption Forecasting
+subtitle: Bir şehrin on yıllık su verisini tek bir aylık tabloya toplayan ve bu tablodan baraj doluluk oranını tahmin eden, dört kişilik bir ekip projesi.
+summary: İzmir için tüketim, baraj seviyeleri, üretim ve hava durumu verileri 2015 ile 2024 arasında tek bir aylık tabloda birleştirildi; her sütunun kaynağı verinin kendi içine yazıldı. Düzenlileştirme kullanan basit regresyon modelleri, baraj doluluğunu denediğimiz ağaç tabanlı ensemble modellerinden daha doğru tahmin etti.
+roleLabel: Veri hazırlama, modelleme ve değerlendirme
+context: Ekip projesi · staj
+period: Ağu 2025
+stack:
+  - Python
+  - pandas
+  - scikit-learn
+  - Meteostat
+  - Jupyter
+evidence:
+  - dataset
+  - code
+  - output
+role: >-
+  Projeyi dört kişilik bir ekiple yaptık. Ortak yaptığımız işleri anlatırken
+  "biz" diyorum. Ben veri hazırlama ve modelleme tarafında çalıştım: ham serileri
+  temizlemek ve hazırlamak, ayrı veri setlerini tek bir aylık tabloda
+  birleştirmek, feature engineering, modelleri eğitmek, karşılaştırmak ve
+  değerlendirmek, bir de görselleştirme. Eksik aylardaki meteoroloji verilerini gerçek istasyon
+  gözlemleriyle tamamlayan Meteostat kodunu ben yazdım. Final
+  sunumunu da ben hazırladım ve projeyi ben sundum.
+limits: >-
+  Birleştirilen tablodaki iki sütun ölçüm değil, türetilmiş değer ve bu sayfada
+  hiçbiri bulgu gibi ele alınmıyor. Tüketimin evsel, endüstriyel ve tarımsal
+  kullanıma ayrılması her aya uygulanan sabit bir oran, ölçülmüş bir dağılım
+  değil; aylık tüketim de bağımsız olarak sayaçla ölçülmüş bir aylık toplam
+  değil, günlük değerin otuzla çarpımı. Model karşılaştırmasında da önemli bir kısıt var: doğrusal modelleri ve
+  ensemble modellerini farklı eğitim ve test ayrımlarıyla değerlendirdik.
+  Aradaki fark, bu veri setinde basit modeli tercih etmemizi destekliyor ama
+  aynı koşullarda birinin diğerinden daha iyi olduğunu gösteren bir ölçüm değil. 120 satırla ayrı bir doğrulama seti için yer yoktu ve 2025
+  tahmini, hava durumu ile nüfus girdilerini 2024 ortalamalarıyla dolduruyor. Bu
+  değerler makul bir geçici varsayım; hava tahmini değil.
+glance:
+  what: On yıllık kamuya açık belediye ve meteoroloji verisinden kurulmuş, İzmir baraj doluluk oranı ve su tüketimi için aylık bir model.
+  built: Verileri hazırlayıp birleştirdim, feature engineering ve model karşılaştırması yaptım. Eksik meteoroloji verilerini tamamlayarak tabloyu kullanılabilir hale getirdim.
+chapters:
+  - { id: 'problem', label: 'On yıl, ayda bir satır' }
+  - { id: 'provenance', label: 'Sayılar nereden geldi' }
+  - { id: 'models', label: 'Basit model neden daha iyi sonuç verdi' }
+  - { id: 'forecast', label: 'Gelecek yılı tahmin etmek' }
+  - { id: 'limits', label: 'Sınırlar ve kısıtlar' }
+card:
+  media: ../../../assets/projects/izmir-water/tahtali-card.jpg
+  alt: Tahtalı Barajı'nın havadan görünümü. Beton gövdesinde DSİ yazısı, arkasında ormanlık tepelerle çevrili baraj gölü var. Projede modellenen barajlardan biri.
+  credit: 'Fotoğraf: Andyduffraine / Wikimedia Commons, CC BY-SA 4.0, kırpıldı'
+  creditHref: https://commons.wikimedia.org/wiki/File:Tahtalibaraji.jpg
+seo:
+  description: On yıllık belediye su ve meteoroloji verisinden İzmir baraj doluluk oranını tahmin eden dört kişilik ekip projesi.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+import Figure from '../../../components/content/Figure.astro';
+import FigurePair from '../../../components/content/FigurePair.astro';
+import ThemeFigure from '../../../components/content/ThemeFigure.astro';
+import tahtali from '../../../assets/projects/izmir-water/tahtali-dam.jpg';
+import presenting from '../../../assets/projects/izmir-water/presentation.jpg';
+import rainfall from '../../../assets/projects/izmir-water/rainfall-concept.jpg';
+import timelineLight from '../../../assets/projects/izmir-water/timeline-light.svg?url';
+import timelineDark from '../../../assets/projects/izmir-water/timeline-dark.svg?url';
+import pipelineLight from '../../../assets/projects/izmir-water/pipeline-light.svg?url';
+import pipelineDark from '../../../assets/projects/izmir-water/pipeline-dark.svg?url';
+import comparisonLight from '../../../assets/projects/izmir-water/model-comparison-light.svg?url';
+import comparisonDark from '../../../assets/projects/izmir-water/model-comparison-dark.svg?url';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Bir şehrin on yıllık su verisi, her ay için bir satır"
+  deck="İzmir’in su verileri yayımlanıyor ama kaynaklar, biçimler ve yayımlanma aralıkları farklı."
+>
+
+İzmir'in barajlarına, su tüketimine ve bunları etkileyen hava koşullarına
+ilişkin veriler kamuya açık. Farklı kurumlar tarafından, farklı formatlarda,
+farklı aralıklarla yayımlanıyorlar ve bir kısmı veri olarak değil, yıllık
+raporların içindeki tablolar olarak geliyor.
+
+Bunun on yıllık kısmını tek bir aylık tabloya koymayı ve baraj doluluk oranının
+buradan ne kadar iyi tahmin edilebildiğini görmeyi hedefledik. Doluluk oranı, su idaresinin karar verirken kullanabileceği bir gösterge.
+Anlamlı biçimde raporlayabileceğimiz kadar düşük bir hata ve sonucu
+kullanacak kişiye açıklayabileceğimiz kadar basit bir model istiyorduk.
+
+Ortaya çıkan kapsam bilerek dar tutuldu. Tek şehir, on yıllık dönem, her ay için tek satır.
+
+<SpecList
+  items={[
+    { key: 'Dönem', value: '2015-01 ile 2024-12 arası, 120 aylık satır' },
+    { key: 'Hedefler', value: 'Baraj doluluk oranı (%) ve depolanan hacim (m³)' },
+    { key: 'Girdiler', value: 'Tüketim, üretim, nüfus, sıcaklık, yağış, nem, basınç, rüzgâr' },
+    { key: 'Tüketim kaynakları', value: 'İZSU abone ve tüketim kayıtları, 2014 ile 2024 arası' },
+    { key: 'Hava durumu kaynakları', value: 'Meteoroloji Genel Müdürlüğü istatistikleri, Meteostat istasyonlarından tamamlandı' },
+  ]}
+/>
+
+Birleştirilen aylık tablo kamuya açık. Ekipten biri tarafından Kaggle'da
+yayımlandı ve bu sayfadaki sayılar da aynı tablodan üretildi.
+
+<p>
+  <a
+    class="draw-link"
+    href="https://www.kaggle.com/datasets/ahmetarifsari/izmir-water"
+    rel="noopener noreferrer"
+    target="_blank"
+  >Veri setini Kaggle'da görüntüle <span aria-hidden="true">↗</span></a>
+</p>
+
+<FigurePair>
+  <Figure
+    slot="a"
+    src={tahtali}
+    alt="Tahtalı Barajı'nın havadan görünümü. Beton gövdesinde DSİ yazısı, arkasında ormanlık tepelerle çevrili baraj gölü var."
+    caption="İzmir'e su sağlayan Tahtalı Barajı'nın 2008'de çekilmiş fotoğrafı. Konuyu göstermek için kullanılıyor; proje çıktısı değil ve modellediğimiz dönemin su seviyesini göstermiyor."
+    credit="Fotoğraf: Andyduffraine / Wikimedia Commons, CC BY-SA 4.0"
+    creditHref="https://commons.wikimedia.org/wiki/File:Tahtalibaraji.jpg"
+  />
+  <Figure
+    slot="b"
+    src={rainfall}
+    alt="Bir baraj duvarının arkasındaki rezervuarı besleyen yeşil bir havzaya yağan yağmurun illüstrasyonu."
+    caption="Modeldeki ilişkiyi anlatan konsept çizim: havzaya düşen yağmur barajda birikiyor, şehir de bu suyu kullanıyor. Bu bir fotoğraf değil. Tahtalı'nın arazisini göstermiyor ve ölçüm verisi içermiyor."
+  />
+</FigurePair>
+
+</Chapter>
+
+<Chapter
+  id="provenance"
+  index="02"
+  title="Sayılar nereden geldi, nereden gelmedi"
+  deck="Her sütunun hangi kaynaktan geldiği belli. Tabloyu hazırlarken temel hedefimiz buydu."
+>
+
+Farklı kaynaklardaki serileri birleştirirken asıl mesele, hangi verinin
+nereden geldiğini takip etmek. Bu yapılmazsa tahmin edilen, enterpolasyonla
+tamamlanan ve gerçekten ölçülen değerler aynı sütunda ayırt edilemez hale
+geliyor. Kaynak bilgisini bu yüzden doğrudan veriye ekledik. Tüketim
+satırlarına ilgili İZSU raporunu, meteoroloji satırlarına istasyonu yazdık.
+Eksik ayları tamamlarken de kullanılan servisi ve tarih aralığını kaydettik.
+
+<ThemeFigure
+  light={timelineLight}
+  dark={timelineDark}
+  width={2400}
+  height={1720}
+  alt="Üst üste iki grafik: yüzde olarak baraj doluluk oranı ve milimetre cinsinden aylık yağış, ikisi de 2015 ile 2024 arasında."
+  caption="Tahminin dayandığı iki seri, doğrudan projenin CSV dosyalarından: üstte baraj doluluk oranı, altta aylık yağış, boşluksuz 120 ay. Buradaki hiçbir şey düzleştirilmedi, doldurulmadı veya tahmin edilmedi. Yağış sütunu kaynakta MGM_İstatistik_Normaller olarak etiketli, dolayısıyla bunu projenin hava durumu serisi olarak görün; bağımsız doğrulanmış istasyon gözlemleri olarak değil. Doluluk oranı, yalnızca Tahtalı değil, birleştirilmiş baraj değeri."
+  wide
+/>
+
+Meteoroloji serisinde eksik aylar vardı. Bunları enterpolasyonla tamamlamak,
+araya tahmini değerler ekleyip bu farkı görünmez kılacaktı; ben de eksik ayları bunun yerine Meteostat'ın
+İzmir istasyon kayıtlarından çektim. Önce Çiğli istasyonu geliyor, yedek olarak
+Adnan Menderes var. Bağıl nemin eksik olduğu ama sıcaklık ile çiy noktasının
+bulunduğu yerlerde nem boş bırakılmak yerine Magnus formülüyle türetiliyor.
+
+Bu kodda iki kuralı korudum. Yalnızca eksik değerleri tamamlıyor; mevcut bir
+ölçümün üzerine başka bir değer yazmıyor. Çıktıya kaynak notunu da ekliyor.
+Böylece dosyayı sonradan açan kişi, eksik ayların nereden tamamlandığını
+kimseye sormadan görebiliyor.
+
+<CodeExcerpt
+  file="fill_izmir_real_meteostat.py"
+  caption="Yalnızca NaN değerler tamamlanıyor. Yapılan işlem ve kaynak bilgisi dosyaya kaydediliyor."
+>
+{`for target in [col_prcp, col_nem, col_pres, col_wspd]:
+    source = target + '_ms'
+`}<span class="cm">{`    # Fill ONLY the gaps. Never overwrite a real observation.`}</span>{`
+    mask = df[target].isna() & df[source].notna()
+    df.loc[mask, target] = df.loc[mask, source]
+
+df['Kaynak_Notu'] = (
+    "Real monthly values. Source: Meteostat monthly/hourly dumps. "
+    "Station priority: Çiğli (17218) -> Adnan Menderes (17219). "
+    "Coverage: 2015-01 .. 2024-12."
+)`}
+</CodeExcerpt>
+
+<ThemeFigure
+  light={pipelineLight}
+  dark={pipelineDark}
+  width={2000}
+  height={2020}
+  alt="Altı adımlı bir iş akışı: kaynaklar, temizleme ve entegrasyon, hava durumu boşlukları, feature engineering, eğitim ve karşılaştırma, ve 2025 tahmini."
+  caption="Dört kamuya açık kaynaktan tahmine uzanan iş akışının şeması. Çalıştırılmış bir eğitim sürecinin grafiği değil. Gösterilen özellik grupları hazırlanan veri setlerinde yer alıyor, ancak her model bunların tamamını kullanmıyor."
+  wide
+/>
+
+Tablodaki her sütun ölçüme dayanmıyor. Evsel, endüstriyel ve tarımsal tüketim
+dağılımı ile aylık toplam tüketim de tabloda var. İkisi de türetilmiş:
+ayrım her aya uygulanan tek bir sabit oran, aylık toplam ise günlük değerin
+otuzla çarpımı. Modeli oluştururken kullanılabiliyorlar ama ölçüm değiller. Bu yüzden
+bunları ne burada ne de sunumda birer bulgu olarak aktarıyoruz.
+
+</Chapter>
+
+<Chapter
+  id="models"
+  index="03"
+  title="Basit model neden daha iyi sonuç verdi"
+  deck="120 satır, belirgin mevsimsellik ve büyük ölçüde bir önceki ayın değerine bağlı bir tahmin hedefi."
+>
+
+En çok fark yaratan özellikler zamanla ilgiliydi. Ayı tek bir sayı yerine
+döngüsel bir çift değerle temsil ettik. Böylece aralık ve ocak, aralarında
+on bir ay varmış gibi değil, birbirine komşu aylar olarak değerlendiriliyor.
+Önceki ayın değeri ve üç aylık hareketli ortalama, gecikmeli özellikler olarak
+eklendi. Mevsimleri one-hot kodladık. Nüfusu kişi başına değerler ve yıllık
+değişim üzerinden kullandık. Yaz ziyaretçilerinin, takvimin açıklamadığı bir
+etkiyi açıklayıp açıklamadığını görmek için turist sayısını da denedik.
+
+Linear, ridge ve lasso regresyonu random forest ve gradient boosted tree modelleriyle
+karşılaştırdık. Bu veri setinde düzenlileştirilmiş doğrusal modeller her iki
+tahmin hedefinde de daha iyi sonuç verdi.
+
+<ThemeFigure
+  light={comparisonLight}
+  dark={comparisonDark}
+  width={2400}
+  height={1820}
+  alt="Linear, ridge ve lasso regresyonu RMSE ve MAE ile, baraj doluluk oranı ve depolanan su hacmi üzerinde karşılaştıran dört çubuk grafik."
+  caption="Üç doğrusal modelin iki tahmin hedefi için raporlanan hata değerleri. Her iki metrikte de düşük değer daha iyi. Grafikler, projenin değerlendirmesindeki yuvarlanmış sayılarla yeniden çizildi; modeller yeniden çalıştırılmadı. Ensemble modelleri farklı eğitim ve test ayrımlarıyla değerlendirildiğinden bunların puanlarıyla doğrudan karşılaştırılamaz."
+  wide
+/>
+
+<div class="table-scroll">
+  <table class="data-table">
+    <caption class="visually-hidden">
+      Projenin final sunumunda raporlandığı haliyle, iki tahmin hedefi üzerinde
+      üç doğrusal modelin hata metrikleri.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Model</th>
+        <th scope="col">Hedef</th>
+        <th scope="col">RMSE</th>
+        <th scope="col">MAE</th>
+        <th scope="col">MAPE</th>
+        <th scope="col">R²</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">Linear</th><td>Doluluk %</td><td class="num">2.93</td><td class="num">2.40</td><td class="num">6.74%</td><td class="num">0.913</td></tr>
+      <tr><th scope="row">Lasso</th><td>Doluluk %</td><td class="num">3.00</td><td class="num">2.46</td><td class="num">6.87%</td><td class="num">0.909</td></tr>
+      <tr><th scope="row">Ridge</th><td>Doluluk %</td><td class="num">3.65</td><td class="num">3.21</td><td class="num">9.14%</td><td class="num">0.866</td></tr>
+      <tr><th scope="row">Ridge</th><td>Hacim m³</td><td class="num">11.02M</td><td class="num">7.48M</td><td class="num">2.58%</td><td class="num">0.938</td></tr>
+      <tr><th scope="row">Linear</th><td>Hacim m³</td><td class="num">13.47M</td><td class="num">8.85M</td><td class="num">3.01%</td><td class="num">0.908</td></tr>
+      <tr><th scope="row">Lasso</th><td>Hacim m³</td><td class="num">13.47M</td><td class="num">8.85M</td><td class="num">3.01%</td><td class="num">0.908</td></tr>
+    </tbody>
+  </table>
+</div>
+
+Bu sonuç, ağaç modellerinin genel olarak daha kötü olduğu anlamına gelmiyor.
+120 aylık gözlem oldukça az veri. Tahmin edilen değeri büyük ölçüde
+mevsimsellik ve önceki ayın değeri belirliyor. Döngüsel ve gecikmeli
+özellikleri kullanan doğrusal model bu yapıyı doğrudan temsil ediyor.
+Ensemble modelininse aynı ilişkiyi veriden öğrenmesi gerekiyor; buradaki veri
+miktarı bunu güvenilir biçimde öğrenmesine yetmiyor.
+
+Burada önemli bir kısıt var. Doğrusal modeller ve ensemble modelleri için
+eğitim ve test verilerini farklı ayırdık. Dolayısıyla hata değerleri, aynı
+koşullarda yapılmış bir karşılaştırma değil. Bu veri setinde aldığımız kararı destekliyorlar. İki model
+ailesinden herhangi biri hakkında genel bir iddiayı desteklemiyorlar.
+
+Cevabı neyin değiştireceğini de yazdık. Aylık yerine haftalık ya da günlük veri,
+zamanla değişen tahmin hataları, modelin açıklayamadığı doğrusal olmayan bir
+örüntü ya da
+buharlaşma ve giriş debisi gibi gerçekten yeni girdiler; ensemble modellerini yeniden denemek için gerekçe olurdu.
+
+</Chapter>
+
+<Chapter
+  id="forecast"
+  index="04"
+  title="Gelecek yılı tahmin etmek"
+  deck="Modelin işe yaraması için geleceğe dönük tahminlerde de kullanılabilmesi gerekiyor."
+>
+
+2025 projeksiyonu için ridge regresyonu on yılın tamamı üzerinde eğittik, sonra
+modeli ay ay ileriye taşıdık. 2025'in her ayına ait lag ve hareketli
+öznitelikler 2024'ün sonundan hesaplanıyor. Önceden bilinemeyecek girdiler
+sıcaklık, yağış ve nüfus; bunlar 2024 ortalamalarıyla dolduruluyor.
+
+Bu ortalamalar gerçek bir hava tahmini değil, geçici bir varsayım. Modelin
+bir yıl boyunca nasıl davranacağını göstermeye yarıyor ama projeksiyonu
+2024 yılının hava koşullarına bağlıyor. Sahada kullanılacak bir sürümde
+bu girdileri meteorolojik tahminlerden alırdım. Sonraki adımda bunu
+yapmak ve elle topladığımız baraj verilerini otomatik alacak bir süreç
+kurmak isterdim.
+
+<Figure
+  src={presenting}
+  alt="Projenin laboratuvarda sunumu; tezgâhta dizüstü bilgisayarla oturulmuş, sunum slaytı üstteki duvara monte ekrana yansıtılmış."
+  caption="Stajın sonunda çalışmanın sunumu. Bu sunumu hazırlamak ve yapmak, dört kişilik projedeki kendi payımın bir parçasıydı."
+/>
+
+<SystemPanel
+  title="Tamamlanan çalışma ne yapıyor"
+  rows={[
+    'İzmir için beş kamuya açık aylık seriyi 2015 ile 2024 arasında tek bir tabloda birleştiriyor',
+    'Her sütunun kaynağını, hangi ayların nereden doldurulduğu dahil, kaydediyor',
+    'Eksik hava durumu aylarını gerçek istasyon gözlemlerinden dolduruyor, ölçülmüş bir değerin üzerine asla yazmıyor',
+    'Ay döngüsü, gecikmeli değerler, hareketli ortalama, kişi başına değerler ve yıllık değişim için özellikler oluşturuyor',
+    'Linear, ridge ve lasso regresyonu her iki hedefte random forest ve gradient boosting ile karşılaştırıyor',
+    'Her model ve hedef için MAE, RMSE, MAPE ve R² raporluyor',
+    'Tüm dönemle eğitilmiş ridge modeli kullanarak 2025 yılı için baraj doluluğu tahmini yapıyor',
+  ]}
+/>
+
+</Chapter>

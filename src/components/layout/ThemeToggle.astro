@@ -1,0 +1,72 @@
+---
+/**
+ * Appearance toggle.
+ *
+ * The symbol is a half-filled circle — the standard contrast mark. It stays the
+ * same symbol in both themes; only which half is filled changes, and that is
+ * done by rotating the whole icon 180°, so the ring (rotationally symmetric)
+ * appears to hold still while the fill crosses over. No sun, no moon, no second
+ * icon to keep in sync.
+ *
+ * Hidden until the script enables it: the markup already carries the default
+ * theme, so without JavaScript the page is correct and a dead button would be
+ * worse than none.
+ */
+import type { Locale } from '../../i18n/locales';
+import { t } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const ui = t(locale);
+---
+
+<button
+  class="theme"
+  type="button"
+  data-theme-toggle
+  aria-pressed="false"
+  aria-label={ui.nav.toggleTheme}
+  title={ui.nav.appearance}
+  hidden
+>
+  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+    <circle cx="9" cy="9" r="6.4" fill="none" stroke="currentColor" stroke-width="1.4" />
+    <path d="M9 2.6a6.4 6.4 0 0 1 0 12.8z" fill="currentColor" />
+  </svg>
+</button>
+
+<style>
+  .theme {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: 0;
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-inout),
+      background-color var(--dur-fast) var(--ease-inout);
+  }
+
+  .theme:hover,
+  .theme:focus-visible {
+    color: var(--text-primary);
+    background: var(--surface-sunken);
+  }
+
+  /* The fill crosses to the other side of the ring on toggle. reset.css already
+     flattens every transition under prefers-reduced-motion, so this becomes an
+     instant swap there rather than a spin. */
+  .theme svg {
+    transition: transform var(--dur-base) var(--ease-inout);
+  }
+
+  .theme[aria-pressed='true'] svg {
+    transform: rotate(180deg);
+  }
+</style>

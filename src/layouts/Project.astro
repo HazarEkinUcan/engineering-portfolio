@@ -1,0 +1,263 @@
+---
+import { Image } from 'astro:assets';
+import Base from './Base.astro';
+import MetaRail from '../components/project/MetaRail.astro';
+import RoleBlock from '../components/project/RoleBlock.astro';
+import SectionRail from '../components/project/SectionRail.astro';
+import ContactBand from '../components/layout/ContactBand.astro';
+import type { CollectionEntry } from 'astro:content';
+import type { Locale } from '../i18n/locales';
+import { href } from '../i18n/paths';
+import { t } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+  /** Locale-independent slug, so the canonical URL is the same in every language. */
+  slug: string;
+  project: CollectionEntry<'projects'>;
+  next?: { href: string; title: string };
+}
+
+const { locale, slug, project, next } = Astro.props;
+const d = project.data;
+const ui = t(locale);
+const evidenceLabels = ui.evidence;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CreativeWork',
+  name: d.title,
+  abstract: d.summary,
+  inLanguage: locale,
+  author: { '@type': 'Person', name: 'Hazar Ekin Uçan' },
+  url: new URL(href(`/projects/${slug}`, locale), Astro.site ?? 'https://hazarekinucan.com').href,
+};
+---
+
+<Base
+  locale={locale}
+  title={`${d.title} · Hazar Ekin Uçan`}
+  description={d.seo?.description ?? d.summary ?? d.title}
+  readingProgress
+  jsonLd={jsonLd}
+>
+  <article class="project" data-article>
+    <header class="project__header wrap">
+      <p class="project__back">
+        <a class="draw-link" href={href('/#work', locale)}>
+          <span aria-hidden="true">←</span> {ui.project.backToWork}
+        </a>
+      </p>
+      <h1 class="project__title">{d.title}</h1>
+      {d.subtitle && <p class="project__subtitle lede">{d.subtitle}</p>}
+      {
+        d.roleLabel && d.context && d.period && d.stack && (
+          <MetaRail
+            items={[
+              { key: ui.project.metaRole, value: d.roleLabel },
+              { key: ui.project.metaContext, value: d.context },
+              { key: ui.project.metaPeriod, value: d.period },
+              { key: ui.project.metaStack, value: d.stack.join(' · ') },
+            ]}
+          />
+        )
+      }
+    </header>
+
+    {
+      d.hero && (
+        <div class="project__hero wrap wrap--media">
+          <div class="figure__frame">
+            <Image
+              src={d.hero.media}
+              alt={d.hero.alt}
+              widths={[768, 1024, 1440, 1920]}
+              sizes="(min-width: 1280px) 1100px, 100vw"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
+          </div>
+          {
+            d.hero.credit && (
+              <p class="project__heroCredit mono">
+                {d.hero.creditHref ? (
+                  <a class="draw-link" href={d.hero.creditHref} rel="noopener noreferrer" target="_blank">
+                    {d.hero.credit}
+                  </a>
+                ) : (
+                  d.hero.credit
+                )}
+              </p>
+            )
+          }
+        </div>
+      )
+    }
+
+    <div class="wrap wrap--media">
+      <div class="offset-grid project__body">
+        {d.chapters && <aside class="project__rail"><SectionRail items={d.chapters} /></aside>}
+
+        <div class="offset-content">
+        {
+          d.glance && (
+            <section class="glance" aria-label={ui.project.glanceLabel}>
+              <p class="glance__row">
+                <span class="label">{ui.project.glanceWhat}</span>
+                <span>{d.glance.what}</span>
+              </p>
+              <p class="glance__row">
+                <span class="label">{ui.project.glanceBuilt}</span>
+                <span>{d.glance.built}</span>
+              </p>
+            </section>
+          )
+        }
+
+        {d.role && <RoleBlock body={d.role} heading={ui.project.myRole} />}
+
+        <slot />
+
+        {
+          d.limits && (
+            <section class="limits defer-render" id="limits" aria-labelledby="limits-title">
+              <h2 class="reveal" id="limits-title">{ui.project.limitsHeading}</h2>
+              <p class="limits__body reveal">{d.limits}</p>
+            </section>
+          )
+        }
+
+        {
+          d.evidence && (
+            <p class="project__evidence label">
+              {ui.project.evidencePrefix}{' '}
+              {d.evidence.map((e) => evidenceLabels[e] ?? e).join(' · ')}
+            </p>
+          )
+        }
+
+        {
+          next && (
+            <nav class="next" aria-label={ui.project.nextNavLabel}>
+              <p class="label">{ui.project.nextLabel}</p>
+              <a class="next__link" href={next.href}>
+                <span>{next.title}</span>
+                <span class="arrow" aria-hidden="true">→</span>
+              </a>
+            </nav>
+          )
+        }
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <ContactBand locale={locale} />
+</Base>
+
+<style>
+  .project__header {
+    padding-block-start: var(--space-8);
+  }
+
+  .project__back {
+    font-size: var(--text-small);
+    margin-block-end: var(--space-6);
+  }
+
+  .project__title {
+    max-width: 18ch;
+  }
+
+  .project__subtitle {
+    margin-block-start: var(--space-5);
+    max-width: 54ch;
+  }
+
+  .project__header :global(.meta) {
+    margin-block-start: var(--space-8);
+  }
+
+  .project__hero {
+    margin-block-start: var(--space-8);
+  }
+
+  /* Licensed media has to carry its credit wherever it appears, including the
+     one place on a case study that has no figcaption. */
+  .project__heroCredit {
+    margin-block-start: var(--space-3);
+    font-size: var(--text-mono);
+    color: var(--text-muted);
+  }
+
+  .project__body {
+    padding-block: var(--space-9) var(--space-10);
+  }
+
+  @media (width < 1280px) {
+    .project__rail {
+      display: none;
+    }
+  }
+
+  .glance {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .glance__row {
+    display: grid;
+    gap: var(--space-1);
+    padding-block: var(--space-4);
+    border-block-start: 1px solid var(--border-hairline);
+    font-size: var(--text-lede);
+    line-height: 1.45;
+  }
+
+  .glance__row:last-child {
+    border-block-end: 1px solid var(--border-hairline);
+  }
+
+  .limits {
+    margin-block-start: var(--space-10);
+    padding-block-start: var(--space-8);
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .limits__body {
+    margin-block-start: var(--space-5);
+    color: var(--text-secondary);
+    max-width: var(--w-prose);
+  }
+
+  .project__evidence {
+    margin-block-start: var(--space-8);
+    color: var(--text-muted);
+  }
+
+  .next {
+    margin-block-start: var(--space-9);
+    padding-block-start: var(--space-6);
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .next__link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin-block-start: var(--space-3);
+    font-size: var(--text-h3);
+    font-weight: 600;
+    letter-spacing: var(--track-h3);
+    text-decoration: none;
+  }
+
+  .next__link .arrow {
+    transition: transform var(--dur-fast) var(--ease-inout);
+  }
+
+  .next__link:hover .arrow {
+    transform: translateX(4px);
+  }
+</style>

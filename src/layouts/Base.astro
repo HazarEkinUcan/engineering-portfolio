@@ -1,0 +1,133 @@
+---
+import '../styles/global.css';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import { DEFAULT_LOCALE, HREFLANG, HTML_LANG, type Locale } from '../i18n/locales';
+import { alternates } from '../i18n/paths';
+import { t } from '../i18n/ui';
+
+interface Props {
+  /** The language this page is written in. Decides lang, canonical and links. */
+  locale: Locale;
+  title: string;
+  description: string;
+  /** Rendered on case-study pages only. */
+  readingProgress?: boolean;
+  ogImage?: string;
+  jsonLd?: Record<string, unknown>;
+}
+
+const { locale, title, description, readingProgress = false, ogImage, jsonLd } = Astro.props;
+const ui = t(locale);
+
+const origin = Astro.site ?? new URL('https://hazarekinucan.com');
+const canonical = new URL(Astro.url.pathname, origin);
+const social = new URL(ogImage ?? '/og/default.png', canonical);
+
+/* One page in three languages, so every version points at every other. The
+   x-default is English, which is what a visitor with an unmatched Accept-Language
+   should land on, and it is the copy of the page with no prefix. */
+const languageAlternates = alternates(Astro.url.pathname).map((alt) => ({
+  hreflang: HREFLANG[alt.locale],
+  href: new URL(alt.path, origin).href,
+  isDefault: alt.locale === DEFAULT_LOCALE,
+}));
+---
+
+<!doctype html>
+<!-- Dark is the portfolio's designed default, so it is in the markup rather
+     than decided at runtime: a visitor with no saved preference, and a visitor
+     with no JavaScript at all, both get the intended design. The inline script
+     below only overrides it when the visitor has explicitly chosen. -->
+<html lang={HTML_LANG[locale]} data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical.href} />
+    {
+      languageAlternates.map((alt) => (
+        <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />
+      ))
+    }
+    {
+      languageAlternates
+        .filter((alt) => alt.isDefault)
+        .map((alt) => <link rel="alternate" hreflang="x-default" href={alt.href} />)
+    }
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical.href} />
+    <meta property="og:locale" content={HTML_LANG[locale]} />
+    <meta property="og:image" content={social.href} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <!-- Only the two faces used above the fold. The serif is not preloaded.
+         These 404 until `npm run fonts` has been run, and the fallback
+         stack renders in the meantime. -->
+    <link
+      rel="preload"
+      href="/fonts/ibm-plex-sans-regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/ibm-plex-mono-regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    {
+      jsonLd && (
+        <script
+          is:inline
+          type="application/ld+json"
+          set:html={JSON.stringify(jsonLd)}
+        />
+      )
+    }
+
+    <!-- Applies the visitor's saved theme before first paint so there is no
+         flash. Saved preference wins; with nothing saved the markup's dark
+         default stands. prefers-color-scheme is deliberately not consulted.
+         Wrapped in try/catch because storage throws in some private modes. -->
+    <script is:inline>
+      (function () {
+        /* Marks that scripting is available, before first paint. The hero
+           only animates when it can animate the arm too. */
+        document.documentElement.classList.add('js');
+        var stored = null;
+        try {
+          stored = localStorage.getItem('theme');
+        } catch (e) {
+          /* Storage unavailable — the dark default in the markup stands. */
+        }
+        if (stored === 'light' || stored === 'dark') {
+          document.documentElement.dataset.theme = stored;
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">{ui.nav.skipToContent}</a>
+    <Header locale={locale} readingProgress={readingProgress} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer locale={locale} />
+
+    <script>
+      import '../scripts/main';
+    </script>
+  </body>
+</html>

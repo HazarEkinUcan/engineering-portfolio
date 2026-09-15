@@ -1,0 +1,316 @@
+---
+order: 1
+status: published
+title: FANUC Text-to-Trajectory Writing Robot
+subtitle: Ein Python-Programm, das aus eingegebenem Text ein FANUC-Bewegungsprogramm erzeugt, und der Industrieroboter, der den Text mit einem Stift auf Papier geschrieben hat.
+summary: Mein Python-Programm erzeugt ohne Fremdbibliotheken FANUC-Roboterpositionen und Bewegungsbefehle aus eingegebenem Text. Eine SVG-Vorschau zeigt die Bahn, bevor der Roboter zum Einsatz kommt. Nachdem ich eine Feder in den Stifthalter eingebaut hatte, schrieb er den Text auf Papier.
+roleLabel: Eigenes Projekt
+context: Neksus Endüstriyel Otomasyon, İzmir
+period: Jun bis Jul 2026
+stack:
+  - Python
+  - FANUC TP / LS
+  - RoboGuide
+  - SVG
+  - CSV
+evidence:
+  - video
+  - code
+  - output
+role: >-
+  Ich habe das Python-Programm geschrieben: die Strichschrift, die Anordnung
+  und automatische Größenanpassung des Textes, die Berechnung der Punkte und
+  die drei Exporter. Den Stifthalter habe ich selbst konstruiert und gebaut.
+  Weil die erste Version keine gleichmäßige Linie zeichnete, habe ich ihn
+  überarbeitet und eine Feder eingebaut. Ich habe die
+  Zelle in RoboGuide aufgebaut, das Teach Pendant bedient, Werkzeug und
+  Schreibebene kalibriert und am realen Roboter die Fehler im Ergebnis gesucht und
+  behoben. Diese Aufgaben sind auch im Empfehlungsschreiben meines Betreuers festgehalten.
+limits: >-
+  Ich habe nichts gemessen. Es gibt keine Angabe zur Wiederholgenauigkeit, keine
+  Messung der Schwankungen in der Strichbreite und keine erfasste Zykluszeit.
+  Ich habe geprüft, ob der Text lesbar war. Das war er. Die Feder
+  habe ich durch Ausprobieren ausgewählt, nicht durch Rechnung. Würde ich das
+  noch einmal bauen, käme eine Messuhr auf die Platte und ich würde die
+  Nachgiebigkeit sauber charakterisieren. Außerdem würde ich die vorgegebene und die tatsächlich erreichte
+  Z-Position aufzeichnen. Dann ließe sich der Kalibrierfehler beziffern,
+  statt ihn nur nach Gefühl einzuschätzen.
+glance:
+  what: Ein Industrieroboter, der eingegebenen Text mit einem Stift schreibt. Das Bewegungsprogramm wird erzeugt, statt jeden Punkt einzeln einzulernen.
+  built: Eine einzige Python-Datei, ein Stiftgreifer mit einer Feder darin und die Kalibrierung, die beides zusammen zum Laufen gebracht hat.
+chapters:
+  - { id: 'problem', label: 'Einem Roboter das Schreiben beibringen' }
+  - { id: 'generate', label: 'Programm erzeugen statt Punkte teachen' }
+  - { id: 'spring', label: 'Eine Feder im Greifer' }
+  - { id: 'result', label: 'Er hat geschrieben' }
+  - { id: 'limits', label: 'Wo die Grenzen liegen' }
+card:
+  alt: Der FANUC 200iD/7L mit montiertem Stifthalter zeichnet eine Textzeile auf Papier, das auf einen runden Tisch geklebt ist.
+  video:
+    mp4: /video/writing-loop.mp4
+    webm: /video/writing-loop.webm
+    poster: /video/writing-poster.jpg
+hero:
+  media: ../../../assets/projects/writing-robot/roboguide-cell.jpg
+  alt: RoboGuide zeigt die erzeugte Werkzeugbahn als vier Zeilen gelben Text vor dem Robotermodell in der simulierten Zelle.
+seo:
+  description: Ein Python-Generator, der getippten Text in FANUC-Roboterpositionen und ein Bewegungsprogramm umwandelt, und der Industrieroboter, der ihn schrieb.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import Figure from '../../../components/content/Figure.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import PipelineDiagram from '../../../components/diagrams/PipelineDiagram.astro';
+import PenMotionDiagram from '../../../components/diagrams/PenMotionDiagram.astro';
+import ComplianceDiagram from '../../../components/diagrams/ComplianceDiagram.astro';
+import workshop from '../../../assets/projects/writing-robot/workshop-cell.jpg';
+import program from '../../../assets/projects/writing-robot/roboguide-program.jpg';
+import planned from '../../../assets/projects/writing-robot/generated-preview.jpg';
+import written from '../../../assets/projects/writing-robot/written-result.jpg';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Einem Roboter das Schreiben beibringen, ohne jeden Punkt zu teachen"
+  deck="Ein kurzer Satz bedeutet Hunderte Roboterpositionen. Ich wollte sie nicht von Hand aufnehmen."
+>
+
+In den letzten zwei Wochen meines Praktikums stand in der Werkstatt ein FANUC
+200iD/7L, der gerade für kein Kundenprojekt gebraucht wurde. Die Wochen davor hatte ich an Palettierzellen gearbeitet, wo der Roboter einen Sack von einer Stelle zur anderen bewegt. Ich
+wollte ein vollständiges System bauen, statt einzelne Befehle zu üben, also habe
+ich mich entschieden, den Roboter schreiben zu lassen.
+
+Normalerweise fährt man den Roboter im Jog-Betrieb zu jedem Punkt und
+speichert die Position. Schon ein kurzer Satz braucht Hunderte Positionen.
+Sie von Hand einzulernen war deshalb nicht praktikabel. Ich wollte einen wiederholbaren Weg von dem
+Text, den ich tippe, zu einem Bewegungsprogramm, das die Steuerung ausführen
+kann.
+
+Schreiben verzeiht außerdem weniger als Pick and Place. Die Stiftspitze muss über
+das ganze Blatt hinweg nahe an einer Ebene bleiben. Der Kontakt muss fest genug
+sein, um eine Linie zu hinterlassen, und leicht genug, um nichts zu verbiegen.
+Hunderte kleiner Bewegungen müssen in der richtigen Reihenfolge laufen. An jeder
+dieser Stellen zeigt sich ein Fehler im Koordinatensystem.
+
+<SpecList
+  items={[
+    { key: 'Papier', value: 'Passt auf A4 quer bei 297 × 210 mm, sonst schrumpft der Text, bis er passt' },
+    { key: 'Zeichen', value: 'A-Z, a-z, 0-9, Satzzeichen und die türkischen Buchstaben ç ğ ı İ ö ş ü' },
+    { key: 'Sicherheit', value: 'Keine Koordinate außerhalb des konfigurierten Arbeitsbereichs erreicht je den Roboter' },
+    { key: 'Arbeitsablauf', value: 'Das erzeugte Programm muss sich über den üblichen FANUC-Workflow laden lassen' },
+    { key: 'Orientierung', value: 'Kartesisches CONFIG und W/P/R stammen aus einem am realen Roboter geprüften Punkt, nicht aus einer Vermutung' },
+  ]}
+/>
+
+<Figure
+  src={workshop}
+  alt="Zwei große FANUC-Palettierroboter in der Werkshalle, die Arme über Portal und Förderband erhoben."
+  caption="Ein Ausschnitt der Werkstattumgebung während meines Praktikums. Der Roboter hier ist nicht der FANUC aus dem Schreibprojekt; der Aufbau stand in einem anderen Bereich."
+  wide
+/>
+
+</Chapter>
+
+<Chapter
+  id="generate"
+  index="02"
+  title="Das Programm erzeugen, statt die Punkte zu teachen"
+  deck="Text geht hinein, ein Bewegungsprogramm kommt heraus, und eine SVG-Vorschau zeigt den Pfad, bevor der Roboter ihn fährt."
+>
+
+Der Generator ist eine einzige Python-Datei ohne Fremdbibliotheken. Das war
+Absicht: Er musste auf einem Werkstattlaptop laufen, ohne dass jemand etwas
+installiert.
+
+Die Schrift ist der Teil, den niemand erwartet. Jedes Zeichen ist eine Liste von
+Polylinien in einer Einheitsbox. Es gibt keine Umrisse zum Füllen, denn der Stift
+zieht immer nur einen Strich. In dieser Box ist `y = 0` die Versalhöhe, `y = 1`
+die Grundlinie, und Unterlängen reichen bis `1.30`. Eine Glyphe bildet direkt die
+Abschnitte ab, in denen der Stift aufliegt.
+
+Die türkischen Zeichen werden zur Laufzeit zusammengesetzt. `ç` ist `c` plus
+Cedille, `ğ` ist `g` plus Breve, `ü` ist `u` plus Trema. Um eine Sprache
+hinzuzufügen, ergänze ich Akzentfunktionen, statt ein Alphabet neu zu zeichnen.
+
+<PipelineDiagram />
+
+Drei Entscheidungen waren in diesem Ablauf besonders wichtig.
+
+Die erste ist die automatische Anpassung. Passt der Text nicht auf das Papier,
+sucht der Generator die größte Buchstabenhöhe, die passt, und skaliert Zeichen-
+und Wortabstände im selben Verhältnis, damit die Proportionen stimmen. Er
+verkleinert den Text nur. Bei einer nötigen Höhe unter 3 mm bricht er ab, weil der Stift so kleine
+Buchstaben nicht mehr ausreichend genau zeichnen kann.
+
+<CodeExcerpt
+  file="fanuc_writer_ls.py · fit_text_to_paper()"
+  caption="Nach fünfzig Schritten der binären Suche wird eine Höhe knapp unter dem letzten passenden Wert gewählt."
+>
+{`low = minimum_height_mm
+high = original_height
+
+`}<span class="cm">{`# Binary search for the largest height that fits.`}</span>{`
+for _ in range(50):
+    middle = (low + high) / 2.0
+    candidate = scaled_config(middle)
+    if fits_paper(layout_text(candidate), candidate):
+        low = middle
+    else:
+        high = middle
+
+return scaled_config(low * 0.999)`}
+</CodeExcerpt>
+
+Die zweite ist die Terminierungsart an jedem Punkt. Sie entscheidet darüber, ob
+die Linie sauber aussieht.
+
+<PenMotionDiagram />
+
+Die Punkte, an denen der Stift aufsetzt und abhebt, werden als `FINE` ausgegeben.
+An diesen beiden Punkten muss die Spitze die vorgegebene Position exakt
+erreichen. Jeder Eckpunkt dazwischen ist `CNT10`, damit die Steuerung die
+Ecken verschleift, statt an jeder einzelnen anzuhalten. Mit `FINE` überall
+stottert der Roboter durch jedes Zeichen. Mit `CNT10` überall rundet der Stift
+den Anfang jedes Strichs ab.
+
+<CodeExcerpt file="fanuc_writer_ls.py · export_fanuc_ls()">
+{`for point in points:
+    termination = (
+        `}<span class="hl">{`"FINE"`}</span>{`
+        if point.motion_type in {"PEN_DOWN", "PEN_UP"}
+        else `}<span class="hl">{`"CNT10"`}</span>{`
+    )
+    motion_instructions.append(
+        f"L P[{point.number}] {point.speed_mm_sec}mm/sec "
+        f"{termination} ;"
+    )`}
+</CodeExcerpt>
+
+<Figure
+  src={program}
+  alt="Ein Laptopbildschirm mit der RoboGuide-3D-Ansicht neben der Programmliste des Teach Pendant, in der Zeilen wie Stroke 18 vertex 3, P[111] 20mm/sec CNT10, Stroke 18 pen up und P[119] 100mm/sec FINE stehen."
+  caption="Das erzeugte Programm auf dem Teach Pendant. Die Strichkommentare und der Wechsel zwischen CNT10 und FINE kommen direkt aus dem Exporter."
+  wide
+/>
+
+Die dritte Entscheidung betrifft den Umgang mit Fehlern. Jeder Punkt wird gegen die
+konfigurierten Grenzen geprüft, bevor überhaupt eine Datei geschrieben wird. Eine
+Koordinate außerhalb des Arbeitsbereichs löst einen Fehler aus, statt stillschweigend
+begrenzt zu werden. Ein Programm, das sich nicht erzeugen lässt, kostet eine
+Minute. Ein Programm, das einen Punkt stillschweigend an den Papierrand schiebt,
+kann dagegen das beschädigen, was der Roboter trifft.
+
+<CodeExcerpt file="fanuc_writer_ls.py · validate_xyz()">
+{`if not all(math.isfinite(value) for value in (x, y, z)):
+    raise ValueError(f"Non-finite coordinate: {(x, y, z)}")
+if not (config.min_x_mm <= x <= config.max_x_mm):
+    raise ValueError(f"X out of bounds: {x:.3f} mm")`}
+</CodeExcerpt>
+
+Aus demselben Grund sind der CONFIG-String und die Werkzeugorientierung Parameter
+mit einer Warnung im Docstring. Ich habe keine Werte fest in die Datei
+geschrieben. Sie müssen von einem geprüften Punkt an genau diesem Roboter kopiert
+werden, und ein Standardwert, der plausibel aussieht, wäre schlimmer als gar kein
+Standardwert.
+
+</Chapter>
+
+<Chapter
+  id="spring"
+  index="03"
+  title="Eine Feder im Greifer"
+  deck="Die Bahn stimmte, aber die Linie war trotzdem zu blass. Geholfen hat eine mechanische Änderung."
+>
+
+Das Koordinatensystem war der schwierige Teil der Software, und es hat länger
+gedauert als erwartet. Maßstab, Ursprung, Schreibebene und Strichreihenfolge
+müssen alle zusammenpassen, und wenn eines davon nicht stimmt, kommen die Zeichen
+verzerrt, gespiegelt oder in falscher Reihenfolge heraus. Sobald es stimmt, sieht
+man davon nichts mehr in der Ausgabe.
+
+Dann habe ich es am Roboter laufen lassen. Der Pfad war richtig, und in RoboGuide
+war er es auch. Auf Papier war die Linie stellenweise blass und stellenweise gar
+nicht da.
+
+Mein erster Impuls war, das Werkzeug weiter ins Papier zu drücken, die
+Schreibebene um einen Millimeter tiefer zu legen und es noch einmal zu versuchen.
+Das wäre der falsche Ansatz gewesen. Ein Roboter, der in eine starre Oberfläche kommandiert
+wird, fährt weiter, bis etwas nachgibt. Ich hätte riskiert, den Halter zu
+verbiegen und den Stift zu beschädigen, und jeder kleine Kalibrierfehler wäre
+gefährlicher geworden statt harmloser. Diese Fehler sind klein und unvermeidbar.
+Der Tool Center Point liegt um einen Bruchteil daneben, das Papier ist nicht
+perfekt eben, der Tisch nicht perfekt waagerecht. Ein TCP-Fehler betrifft jedes
+Zeichen auf der Seite.
+
+Also habe ich den Greifer geändert und eine Feder hineingesetzt.
+
+<ComplianceDiagram />
+
+Mehr brauchte es nicht. Der Stift kann sich im Halter bewegen. Die
+Kontaktkraft wird deshalb hauptsächlich von der Feder bestimmt und hängt
+weniger davon ab, wie genau die Papierposition kalibriert ist. Kleine
+Höhenabweichungen führten vorher zu fehlenden Linien oder zu hoher Belastung.
+Jetzt gleicht die Feder sie aus.
+
+Diese einfache Änderung ist mir in Erinnerung geblieben. Ich hatte versucht,
+das Kontaktproblem in der Software zu lösen. Die bessere Lösung lag aber
+in der Mechanik.
+
+</Chapter>
+
+<Chapter
+  id="result"
+  index="04"
+  title="Er hat geschrieben"
+  deck="Derselbe Satz, einmal als SVG-Vorschau des Generators und einmal in Tinte."
+>
+
+Der Generator funktioniert. Für den Text `Hazar Ekin Uçan` erzeugt er 19 Striche
+und 127 Roboterpunkte und verkleinert die angeforderte Buchstabenhöhe von 30 mm
+auf 23.31 mm, damit die Zeile auf die Seite passt. Diese Werte habe ich beim Ausführen des Programms ermittelt.
+
+<div class="pair">
+  <Figure
+    src={planned}
+    alt="Die SVG-Vorschau des Generators: vier Zeilen einstrichiger Text mit Hazar Ekin Uçan, Constructor University, Robotics and Intellegent Systems, Precision in Automation."
+    caption="Geplant. Die SVG-Vorschau, die der Generator neben dem Bewegungsprogramm schreibt. Das ist es, was ich prüfe, bevor der Roboter läuft."
+  />
+  <Figure
+    src={written}
+    alt="Dieselben vier Zeilen, vom Roboter mit Stift auf Papier geschrieben, die Striche sichtbar aus geraden Segmenten gebildet."
+    caption="Das Ergebnis auf Papier. Den Schreibfehler hatte ich schon bei der Texteingabe gemacht. Das Programm und der Roboter haben ihn unverändert übernommen."
+  />
+</div>
+
+Das Video unten zeigt den Roboter beim Schreiben. Ich zeige es ohne Ton,
+weil auf der Originalaufnahme nur Werkstattlärm zu hören ist.
+
+<figure class="figure video-figure bleed">
+  <div class="video-figure__frame">
+    <video
+      controls
+      muted
+      playsinline
+      preload="metadata"
+      poster="/video/writing-poster.jpg"
+      width="464"
+      height="832"
+    >
+      <source src="/video/writing-demo.mp4" type="video/mp4" />
+      Ihr Browser kann dieses Video nicht abspielen.
+    </video>
+  </div>
+  <figcaption>
+    Der FANUC 200iD/7L zeichnet die zweite Zeile, Stift im Kontakt, Papier auf den
+    Tisch geklebt. Am Ende des Praktikums mit dem Handy gefilmt. Kein Ton.
+  </figcaption>
+</figure>
+
+In diesem Projekt habe ich fast alles angewendet, was ich in den Wochen
+davor gelernt hatte. Bedienung des Teach Pendant, Tool- und User-Frames, Register und
+Positionsregister, digitale E/A, Bewegungsarten und Geschwindigkeiten, Mastering,
+Kalibrierung und Alarmbehebung kamen alle zum Einsatz. Am Ende stand ein
+System, bei dem ich am Ergebnis sofort sehen konnte, ob es funktioniert.
+
+</Chapter>

@@ -1,0 +1,290 @@
+---
+order: 2
+status: published
+title: VR Prosodic Speech Analysis System
+subtitle: Ein fertiges System, das die Sprechweise während einer VR-Übung misst und anhand eigener ruhiger und dringlich gesprochener Referenzaufnahmen bewertet.
+summary: Eine Python-Engine nimmt Sprache in VR auf, transkribiert sie und bewertet sechs prosodische Merkmale anhand eigener ruhiger und deutlich dringlicher Referenzaufnahmen. FastAPI verbindet sie mit dem Quest-Headset. Besonders wichtig ist mir, wann das System bewusst keinen Score ausgibt.
+roleLabel: Python-Engine und API
+context: Eigenes Projekt
+period: '2026'
+stack:
+  - Python
+  - FastAPI
+  - Faster-Whisper
+  - Praat / parselmouth
+  - librosa
+evidence:
+  - code
+  - architecture
+  - system-design
+role: >-
+  Ich habe die Python-Engine für die Analyse entworfen und geschrieben. Dazu
+  gehören die Aufnahme, Transkription und Wortzeitstempel mit Faster-Whisper,
+  die Auswertung prosodischer Merkmale mit Praat und librosa, die persönliche
+  Kalibrierung anhand zweier Referenzen, die Score-Berechnung, die
+  Qualitätsprüfungen und die Sitzungsprotokolle. Auch den FastAPI-Dienst, den die VR-Schicht aufruft, habe
+  ich geschrieben. Jeder Commit im Repository ist von mir. Das System läuft von
+  Anfang bis Ende auf einem einzigen Windows-PC, mit dem Headset über Quest Link.
+limits: >-
+  Der prosodische Score zeigt, wie weit sich die Sprechweise von der eigenen
+  ruhigen Referenz in Richtung der dringlichen Referenz verändert hat. Er
+  erklärt nicht, warum.
+  Müdigkeit, eine Erkältung, eine erhobene Stimme in einem lauten Raum und echte
+  Dringlichkeit können dieselben Merkmale in dieselbe Richtung verändern.
+  Das Signal erlaubt keine Unterscheidung zwischen diesen Ursachen. Der Score ist ausdrücklich kein klinisches Maß.
+  Der Code sagt das an der Stelle, an der er ein Ergebnis ausgibt, und ich würde
+  es überall dort weiter sagen, wo das eingesetzt wird. Für die Tempomerkmale wird die Silbenzahl anhand der türkischen Vokale
+  näherungsweise bestimmt. Sie reicht, um eine
+  Person mit sich selbst zu vergleichen, und sie reicht nicht, um Personen
+  untereinander zu vergleichen.
+glance:
+  what: Ein System, das die stimmliche Erregung während einer VR-Übung misst und in Echtzeit einen persönlich normierten Score anzeigt.
+  built: Die Python-Engine für die Analyse und der FastAPI-Dienst, den die VR-Schicht aufruft.
+chapters:
+  - { id: 'problem', label: 'Wie jemand spricht' }
+  - { id: 'anchors', label: 'Zwei Referenzaufnahmen' }
+  - { id: 'refuse', label: 'Irreführende Scores vermeiden' }
+  - { id: 'system', label: 'Das fertige System' }
+  - { id: 'limits', label: 'Wo die Grenzen liegen' }
+card:
+  media: ../../../assets/projects/prosodic-vr/vr-concept-card.jpg
+  alt: Konzeptbild. Ein VR-Headset und zwei Handcontroller auf einer hellen Fläche, davor verläuft eine Sprachwellenform.
+  credit: Konzeptbild, keine Projekthardware
+seo:
+  description: Ein fertiges System zur Bewertung der Sprechweise in VR, anhand eigener ruhiger und dringlich gesprochener Referenzaufnahmen. Python und FastAPI.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+import CalibrationDiagram from '../../../components/diagrams/CalibrationDiagram.astro';
+import ArchitectureDiagram from '../../../components/diagrams/ArchitectureDiagram.astro';
+import QualityGateDiagram from '../../../components/diagrams/QualityGateDiagram.astro';
+import Figure from '../../../components/content/Figure.astro';
+import ThemeFigure from '../../../components/content/ThemeFigure.astro';
+import questUnity from '../../../assets/projects/prosodic-vr/quest-unity-collage.jpg';
+import speechLight from '../../../assets/projects/prosodic-vr/speech-features-light.svg?url';
+import speechDark from '../../../assets/projects/prosodic-vr/speech-features-dark.svg?url';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Messen, wie jemand spricht"
+  deck="Wie jemand während einer VR-Übung spricht, verrät etwas, das der reine Aufgabenscore nicht erfasst."
+>
+
+Wenn jemand in VR eine simulierte Prozedur durchgeht, weiß das System bereits, ob
+die Schritte erledigt wurden. Es weiß nichts darüber, wie die Person dabei
+geklungen hat. Tonhöhe, Lautstärke, Tempo und Pausen liefern diese Information. Ich wollte daraus eine Zahl machen, während die Übung noch läuft.
+
+Eine feste Schwelle funktioniert nicht. Wenn ich sage, alles über 180 Hz oder
+70 dB gilt als erhöht, misst das System am Ende die Person statt ihren Zustand.
+Wer von Natur aus laut spricht, überschreitet diese Linie schon im ruhigen
+Zustand. Wer leise spricht, überschreitet sie selbst unter echtem Druck nie. Eine
+feste akustische Schwelle müsste auf unterschiedliche Stimmen passen. Ich
+wollte aber eine Veränderung innerhalb derselben Stimme erkennen.
+
+<SpecList
+  items={[
+    { key: 'Hardware', value: 'Ein Windows-PC, Meta Quest 3 über Quest Link, Ton vom virtuellen Oculus-Mikrofon mit 16 kHz mono' },
+    { key: 'Interaktion', value: 'Eine Controller-Taste: gedrückt halten zum Aufnehmen, loslassen zum Auswerten' },
+    { key: 'Grenze', value: 'Keine Audioanalyse in C# nachgebaut. Eine Umsetzung, in Python' },
+    { key: 'Latenz', value: 'Die Auswertung kommt zurück, während die Übung noch läuft' },
+    { key: 'Grundsatz', value: 'Lieber nichts zurückgeben als einen schlechten Score' },
+  ]}
+/>
+
+</Chapter>
+
+<Chapter
+  id="anchors"
+  index="02"
+  title="Zwei Referenzaufnahmen statt einer festen Schwelle"
+  deck="Jede Person bekommt eine eigene Skala. Beide Endpunkte werden aus ihrer Stimme bestimmt."
+>
+
+Vor der Übung nimmt jede Person zwei kurze Sätze auf. Den ersten spricht
+sie in normalem Ton als **Baseline**, den zweiten deutlich dringlicher als
+**Upperline**. Der Abstand zwischen den beiden Aufnahmen bildet für jedes
+Merkmal den persönlichen Bewertungsbereich.
+
+Spätere Aufnahmen werden innerhalb dieses persönlichen Bereichs eingeordnet:
+null entspricht der Baseline, eins der Upperline. Eine laute und eine leise
+sprechende Person erhalten denselben Score, wenn sie sich relativ zu ihren
+eigenen Referenzen gleich stark in Richtung Dringlichkeit verändert haben.
+
+<CalibrationDiagram />
+
+Besonders wichtig war mir, das Vorzeichen der Spanne beizubehalten.
+Die meisten Menschen sprechen schneller, wenn sie Dringlichkeit ausdrücken; ihre Upperline der
+Artikulationsrate liegt also über ihrer Baseline. Manche sprechen stattdessen
+langsamer und bedachter. Die Formel behandelt das nicht als Fehler, der korrigiert
+werden müsste. Sie behält die Richtung, die diese Person tatsächlich gezeigt hat.
+Die Spanne ist dann einfach negativ, und der Fortschritt darauf wird genauso
+berechnet.
+
+<CodeExcerpt
+  file="app_speech_integrated.py · compare_with_two_anchors()"
+  caption="Fortschritt entlang einer persönlichen Spanne. Negative Spannen funktionieren unverändert, Bewegung in die Gegenrichtung ergibt null, ein Merkmal ist gedeckelt und kann nicht dominieren."
+>
+{`raw_progress = (
+    current_number - baseline_number
+) / gap
+
+`}<span class="cm">{`# Baseline'ın ters yönündeki değişim panik puanı üretmez.`}</span>{`
+`}<span class="hl">{`score_progress = max(raw_progress, 0.0)`}</span>{`
+
+`}<span class="cm">{`# Upperline'ı aşmak mümkündür. 1.25 sınırı, tek özelliğin`}</span>{`
+`}<span class="cm">{`# bütün skoru aşırı şişirmesini engeller.`}</span>{`
+`}<span class="hl">{`score_progress = min(score_progress, 1.25)`}</span>{`
+
+weighted_progress += score_progress * weight
+used_weight += weight`}
+</CodeExcerpt>
+
+Der Score wird aus sechs Merkmalen berechnet. Jedes hat ein Gewicht und eine Mindestspanne.
+Die Mindestspanne ist der kleinste Abstand zwischen den beiden Ankern einer
+Person, der noch als echter Unterschied zählt und nicht als Rauschen.
+
+<div class="table-scroll">
+  <table class="data-table">
+    <caption class="visually-hidden">
+      Die sechs bewerteten prosodischen Merkmale mit ihrem Gewicht im Endscore
+      und dem Mindestabstand, der zwischen den beiden Kalibrierankern einer
+      sprechenden Person nötig ist.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Merkmal</th>
+        <th scope="col">Gewicht</th>
+        <th scope="col">Mindestspanne</th>
+        <th scope="col">Quelle</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">F0-Median</th><td class="num">0.25</td><td class="num">5 Hz</td><td>Praat Tonhöhe</td></tr>
+      <tr><th scope="row">Mittlere Intensität</th><td class="num">0.20</td><td class="num">2 dB</td><td>Praat Intensität</td></tr>
+      <tr><th scope="row">Artikulationsrate</th><td class="num">0.20</td><td class="num">0.30 syll/s</td><td>Whisper Wortzeitstempel</td></tr>
+      <tr><th scope="row">Maximale Intensität</th><td class="num">0.15</td><td class="num">3 dB</td><td>Praat Intensität</td></tr>
+      <tr><th scope="row">Tonhöhenumfang (p90−p10)</th><td class="num">0.10</td><td class="num">5 Hz</td><td>Praat Tonhöhe</td></tr>
+      <tr><th scope="row">Pausenanteil</th><td class="num">0.10</td><td class="num">0.03</td><td>Whisper Wortzeitstempel</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<ThemeFigure
+  light={speechLight}
+  dark={speechDark}
+  width={2400}
+  height={1720}
+  alt="Eine aufgezeichnete Sprachwellenform über einer Zeitleiste der einzelnen Wörter, die die Transkription darin gefunden hat, darunter zusammenfassende Tonhöhenwerte."
+  caption="Eine echte Aufnahme, ausgewertet mit der Python-Engine: Wellenform, Wortgrenzen aus Faster-Whisper und ermittelte Tonhöhenwerte. Die Aufnahme stammt vom Laptopmikrofon, nicht vom Headset, und enthält nur eine Äußerung. Sie zeigt die Ausgabe der Analyse, bestätigt aber nicht deren Genauigkeit."
+  wide
+/>
+
+Für die zeitliche Auswertung nutze ich die Wortzeitstempel von Faster-Whisper
+statt einer energiebasierten Sprachaktivitätserkennung. Energiebasierte VAD kann eine
+Pause nicht von einem stillen Raum unterscheiden, und ein verrauschtes Signal vom Headset-Mikrofon erschwert die Erkennung zusätzlich. Wortgrenzen aus dem Transkript sind eine deutlich bessere
+Grundlage dafür, zu sagen, wo das Sprechen tatsächlich aufgehört hat. Silben
+werden über das Zählen türkischer Vokale genähert. Das ist eine dokumentierte
+Näherung und kein echter Silbentrenner, und sie reicht, um eine Person mit sich
+selbst zu vergleichen.
+
+Das System ist bewusst in zwei Schichten gebaut, mit einer HTTP-Brücke dazwischen.
+
+<ArchitectureDiagram />
+
+Diese Trennung ist sinnvoll, weil die gesamte Messung in Python bleibt.
+Zu Praat, librosa und Faster-Whisper gibt es in C# kein Gegenstück. Einen Teil
+davon in das VR-Projekt zu portieren hätte eine zweite Umsetzung der Messung
+erzeugt, und ich hätte beide dauerhaft aufeinander abstimmen müssen.
+
+</Chapter>
+
+<Chapter
+  id="refuse"
+  index="03"
+  title="Irreführende Scores vermeiden"
+  deck="Ein großer Teil der Entwicklungsarbeit steckt in der Entscheidung, wann kein Ergebnis ausgegeben werden darf."
+>
+
+Einer Zahl auf einem Bildschirm vertraut man schnell. Deshalb muss klar
+sein, wann das System überhaupt eine ausgeben darf. Die folgenden Prüfungen
+sind für mich der wichtigste Teil dieser Entwicklung.
+
+<QualityGateDiagram />
+
+Die Prüfung auf Merkmalsebene ist die wichtigste. Unterscheiden sich Baseline und
+Upperline bei einem Merkmal nicht ausreichend, liefert es keine Information
+über die Veränderung dieser Person. Vielleicht hat sie beide Male auf
+derselben Tonhöhe gesprochen. Dieses Merkmal würde nur Rauschen in die Bewertung bringen. Deshalb wird
+es ausgeschlossen. Die übrigen Merkmale, bei denen ein Unterschied
+erkennbar ist, werden neu gewichtet und zum Score verrechnet.
+
+Fallen zu viele Merkmale weg, reicht das Profil nicht mehr für eine
+Bewertung. Bleiben weniger als zwei Merkmale oder liegt ihr Gesamtgewicht
+unter 0.40, wird die Kalibrierung abgelehnt. Die Referenzaufnahmen müssen
+dann wiederholt werden.
+
+Die Aufnahmequalität wird vor all dem geprüft. Clipping bei einer Spitze von 0.99
+oder darüber, eine Spitze unter 0.02 oder weniger als 20% stimmhafte Frames lösen
+jeweils eine Warnung aus. Es gibt noch eine feinere. Meldet die
+Sprachaktivitätserkennung, dass 98% oder mehr des Fensters aktives Sprechen sind,
+ist das meist ein lauter Raum, der als durchgehendes Reden gehört wird, und die
+daraus abgeleiteten Zeitmerkmale sind nicht vertrauenswürdig.
+
+<CodeExcerpt
+  file="baseline_manager.py · evaluate_recording_quality()"
+  caption="Diese Prüfung soll Raumgeräusche erkennen, nicht die sprechende Person bewerten."
+>
+{`if speech_window > 0:
+    active_ratio = active_duration / speech_window
+
+    `}<span class="hl">{`if active_ratio >= 0.98:`}</span>{`
+        warnings.append(
+            "Kayıdın neredeyse tamamı aktif konuşma olarak algılandı. "
+            "Gürültü nedeniyle VAD/sessizlik tespiti güvenilir olmayabilir."
+        )`}
+</CodeExcerpt>
+
+Eine Prüfung mag ich noch besonders. Der Kalibriersatz selbst wird verifiziert:
+das Transkript dessen, was die Person gesagt hat, wird mit dem Satz verglichen,
+den sie sagen sollte. Eine Baseline, die aufgenommen wurde, während jemand mit
+der Person nebenan geredet hat, sollte nicht stillschweigend zur Referenz werden,
+an der jeder spätere Score gemessen wird.
+
+</Chapter>
+
+<Chapter
+  id="system"
+  index="04"
+  title="Das fertige System"
+  deck="Vom Tastendruck bis zum Score läuft alles auf einem Rechner."
+>
+
+<SystemPanel
+  title="Das System, von Anfang bis Ende"
+  rows={[
+    'Nimmt Ton vom Quest-Mikrofon über Quest Link auf',
+    'Die Controller-Taste steuert <code>/start</code> und <code>/stop</code> auf der FastAPI-Brücke',
+    'Liefert das Transkript und die Wortzeitstempel von Faster-Whisper',
+    'Extrahiert sechs prosodische Merkmale je Aufnahme: F0-Median und Umfang, mittlere und maximale Intensität, Artikulationsrate, Pausenanteil',
+    'Erstellt aus Baseline und Upperline ein persönliches Kalibrierprofil und prüft es vor der Nutzung',
+    'Gibt einen persönlich normierten Score von 0-100 an das VR-Panel zurück',
+    'Schreibt JSON je Äußerung, eine Sitzungs-CSV und einen Sitzungsbericht für spätere Auswertungen',
+  ]}
+/>
+
+<Figure
+  src={questUnity}
+  alt="Drei Fotos: Arbeit am Analysecode an einem Laptop, das getragene Quest-3-Headset mit der Unity-Szene auf einem Wandbildschirm, und das Projektposter bei der Präsentation im Labor."
+  caption="Die Teile, die in keinem Code-Listing auftauchen: die Arbeit an der Analyse-Engine, das Headset im Einsatz mit laufender Unity-Szene, und das präsentierte Projekt. Die Beispielwerte auf dem Poster sind illustrativ und keine gemessenen Ergebnisse."
+/>
+
+Die Analyse-Engine läuft auch ohne angeschlossenes Headset. So habe ich sie
+entwickelt und kann sie weiterhin testen: Eine WAV-Datei und ein Satz reichen,
+um die gesamte Analyse auszuführen. Die VR-Schicht startet nur die Aufnahme
+und zeigt das Ergebnis an.
+
+</Chapter>

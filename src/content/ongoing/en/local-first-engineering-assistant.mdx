@@ -1,0 +1,261 @@
+---
+order: 2
+status: ongoing
+title: Local-First Engineering Assistant
+subtitle: An assistant that works on my own machine. A small local model that reaches for the right tool instead of trying to know everything itself.
+summary: A local-first AI assistant for engineering and everyday computer work. The idea is to pair a compact local model with Python tools, file retrieval, web research and controlled computer access. Stronger cloud models get used only when the local system genuinely needs help.
+updated: September 2026
+statusLine: Architecture research and planning · local model, tool system and hardware options being evaluated
+context: Personal project
+started: Sep 2026
+focus: Agent architecture, tool design, permissions
+targetLine: Local model · Tool use · Controlled cloud fallback
+targets:
+  - key: Local-first
+    value: Most routine work attempted on my own machine before anything leaves it
+  - key: Tool use
+    value: Specialised tools for computation, retrieval and actions, so the model does not have to know everything
+  - key: Local context
+    value: Work with selected engineering files and project knowledge through retrieval, not by loading a filesystem into a prompt
+  - key: Permissioned access
+    value: Read, write, execute, network and external-model treated as separate permissions
+  - key: Controlled escalation
+    value: Larger remote models consulted only when the local attempt has genuinely fallen short
+  - key: Measured performance
+    value: Latency, capability and resource use benchmarked after implementation, not assumed
+targetsNote: >-
+  These are what the system is being designed to do, not behaviour it already
+  has. Nothing here is implemented or measured yet.
+currentStatus:
+  - 'Architecture research and planning underway. Nothing is implemented.'
+  - 'Tool architecture being defined: what the tools are, how the model calls them, and what each one is allowed to touch.'
+  - 'Local model and runtime options being investigated. No model, quantisation, context length or runtime has been chosen.'
+  - 'Dedicated edge hardware is being considered but has not been purchased. An NVIDIA Jetson Orin Nano is one possible platform; the system may just as well run on the computer I already have.'
+  - 'Implementation and benchmarking still ahead. No latency, capability or power figures exist yet.'
+statusNote: >-
+  This page will be updated as the work progresses. Latency, capability and
+  power figures will be added once there is a running system to measure.
+chapters:
+  - { id: 'why', label: "Why I'm building it" }
+  - { id: 'local-first', label: 'Local first' }
+  - { id: 'tools', label: 'Tools instead of model size' }
+  - { id: 'context', label: 'Local context' }
+  - { id: 'permissions', label: 'Permissioned computer access' }
+  - { id: 'escalation', label: 'Escalation' }
+  - { id: 'questions', label: 'Engineering questions' }
+  - { id: 'status', label: 'Current status' }
+media:
+  src: ../../../assets/projects/local-first-assistant/assistant-concept.png
+  alt: Concept illustration of an abstract pale-blue computational sphere formed from layered filaments, connected nodes and branching arcs on a transparent ground.
+  caption: 'Concept illustration: the interface, hardware and system architecture may change during development. This is not a screenshot of working software.'
+  contain: true
+seo:
+  description: An ongoing build. A local-first engineering assistant pairing a compact local model with tools, retrieval and permissioned computer access.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+
+<Chapter
+  id="why"
+  index="01"
+  title="Why I'm building it"
+  deck="Two reasons: I want to understand these systems from the inside, and I want to find out how much of my own work can stay on my own machine."
+>
+
+AI has become a normal part of engineering and programming work, including mine.
+I would rather understand that class of system well enough to build and control
+one than only use hosted products and take their behaviour on trust. Building a
+working assistant end to end is the way I know to learn local inference, agent
+architecture, retrieval, routing and permissions properly. I have to make each
+decision and then live with it.
+
+The second reason is more practical. A great deal of small, routine AI-assisted
+work currently becomes a request to a remote data centre. I am not convinced all
+of it needs to. Running a model locally is not free either. It uses electricity,
+and the hardware has a footprint of its own. So this is not a claim that local
+inference is automatically the better choice environmentally, and I have not
+measured anything that would let me say that. What I want to find out is a
+narrower and more answerable question: how much of my day-to-day AI-assisted work
+can practically stay local, with remote models kept for the tasks that genuinely
+need
+their extra capability.
+
+</Chapter>
+
+<Chapter
+  id="local-first"
+  index="02"
+  title="Local first"
+  deck="The order matters more than the model: local model, then tools, then a remote model only if the first two have not got there."
+>
+
+The organising principle is a sequence, not a single component:
+
+<SystemPanel
+  title="The order the system should work in"
+  rows={[
+    'A request arrives and the local model reasons about it.',
+    'It reaches for whatever tools the task actually needs.',
+    'It attempts the task locally, with those tools doing the work they are good at.',
+    'If that genuinely falls short, it may consult a stronger external model.',
+    'Whatever comes back is used locally to finish the job.',
+  ]}
+/>
+
+The goal is explicitly not to make a small model behave like the largest hosted
+ones. It will not. The goal is to build a system around a small model that lets it
+use the right resource for each task, so that the model's own size stops being the
+thing that decides what is possible.
+
+</Chapter>
+
+<Chapter
+  id="tools"
+  index="03"
+  title="Tools instead of model size"
+  deck="A model that can call a calculator does not need to be able to do arithmetic in its head. That idea, applied everywhere it will go, is the core of the project."
+>
+
+The central engineering question of this project is: **how far can good tools and
+system design compensate for a smaller language model?**
+
+A large model answers a question by knowing more. A well-built system answers it by
+reaching for the thing that already knows. Each of these is a planned capability,
+not a working one:
+
+<SpecList
+  items={[
+    { key: 'Calculation', value: 'A calculator tool, so arithmetic is computed and not predicted' },
+    { key: 'Python', value: 'Python execution for data handling, analysis and scripted work' },
+    { key: 'Code', value: 'Running code, and using the result instead of guessing at it' },
+    { key: 'Web research', value: 'A defined web tool for current information the model cannot hold' },
+    { key: 'Document search', value: 'Retrieval over my own indexed project documents' },
+    { key: 'Files', value: 'Reading, and where permitted creating and modifying, local files' },
+    { key: 'Desktop', value: 'Interaction with selected applications, under explicit permission' },
+  ]}
+/>
+
+If the system needs a number, it should compute it. If it needs today's
+information, it should look it up. If it needs something from one of my projects,
+it should retrieve that file. Reaching for a bigger model should be the last
+option, not the first.
+
+</Chapter>
+
+<Chapter
+  id="context"
+  index="04"
+  title="Local context"
+  deck="The assistant should know about my work without my work having to leave the machine."
+>
+
+Most of what would make an assistant genuinely useful to me is already on my
+computer: project folders, code, university material, notes, papers, engineering
+documents. The point of keeping the system local is that it can use those without
+each of them becoming a remote request.
+
+What I do **not** want is the naive version of this, where the whole filesystem is
+shovelled into a model's context. That does not work, does not scale, and is not
+how the problem should be solved. The direction is selective instead:
+
+<SystemPanel
+  title="How local context should reach the model"
+  rows={[
+    'Local indexing over the files I choose to make available.',
+    'Retrieval of the passages or documents relevant to the request at hand.',
+    'Only that material placed into the local model context.',
+  ]}
+/>
+
+Whether that ends up as local search, embeddings, or some other retrieval
+architecture is one of the things still to be decided. It has not been chosen or
+built.
+
+</Chapter>
+
+<Chapter
+  id="permissions"
+  index="05"
+  title="Permissioned computer access"
+  deck="Giving a model access to a computer creates a security problem. It should be designed on purpose, not discovered later."
+>
+
+If the assistant can eventually read files, write files, run code, reach the
+network and talk to external services, then an unrestricted agent with blanket
+system access is exactly the wrong shape. The part of this project I find most
+interesting is designing the boundary, not the capability.
+
+The concept I want to explore separates permissions by kind, so that a tool has to
+ask for the specific thing it needs:
+
+<SpecList
+  items={[
+    { key: 'Read', value: 'Inspect files, documents and system state' },
+    { key: 'Write', value: 'Create or modify files' },
+    { key: 'Execute', value: 'Run Python, shell commands or applications' },
+    { key: 'Network', value: 'Reach the web or external services' },
+    { key: 'External AI', value: 'Send a request to a remote model' },
+  ]}
+/>
+
+Higher-risk operations should be able to require explicit approval from me before
+they happen, instead of being something I discover afterwards in a log. Sending
+data to an external model is treated as its own permission, at the same level as
+executing code. In terms of what leaves the machine, it is.
+
+This is a planned architecture. None of it is implemented, and the mechanism that
+would enforce it has not been built.
+
+</Chapter>
+
+<Chapter
+  id="escalation"
+  index="06"
+  title="Escalation"
+  deck="Remote models as a fallback the system reaches for deliberately, not as the backend it quietly runs on."
+>
+
+Some problems will be beyond a small local model, and pretending otherwise would
+make the system worse instead of more principled. So there should be a way out: a
+controlled consultation layer that can put a question to a stronger external model
+through an API, using something like OpenAI's models, Claude or Gemini.
+
+What matters is when it fires. The assistant does not route its work to those
+services by default. It tries locally with its tools first, and if it gets stuck
+it can decide that more reasoning is needed and ask for it. The answer comes back
+and the work continues locally.
+
+One idea I want to investigate is whether it is worth consulting more than one
+external model for a genuinely hard problem and comparing what comes back. That
+would be a small council instead of a single escalation target. It is a question I
+am interested in, and not a component that exists.
+
+None of this routing is implemented. Deciding *when* a system should conclude it
+is stuck is, I suspect, harder than wiring up the API call.
+
+</Chapter>
+
+<Chapter
+  id="questions"
+  index="07"
+  title="Engineering questions"
+  deck="Written down before implementation, so the answers can be checked against them instead of fitted to whatever I end up building."
+>
+
+- How far can good tools and system design compensate for a smaller language model?
+- Which tasks genuinely require a larger remote model, and which only appear to?
+- How should an agent decide that it is stuck? Knowing when to escalate seems
+  harder than escalating.
+- How can local file and computer access be useful without giving the agent
+  unrestricted control?
+- What should require explicit human approval, and what would become so annoying
+  to approve that I would start approving it without reading?
+- How much of my project context can realistically stay entirely local?
+- What is the practical balance between model capability, latency, power use and
+  hardware cost?
+- When does local inference actually make sense, and when is a remote model simply
+  the better engineering choice?
+
+</Chapter>

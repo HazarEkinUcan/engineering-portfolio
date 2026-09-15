@@ -1,0 +1,157 @@
+---
+import DiagramFrame from './DiagramFrame.astro';
+
+/**
+ * Project 2, diagram 3 — scoring and quality gates, with the refusal exits
+ * drawn explicitly. Every threshold is a real constant from the code.
+ */
+import { diagramsFor } from '../../i18n/diagrams';
+
+const t = diagramsFor(Astro.url).qualityGate;
+---
+
+<DiagramFrame
+  label={t.label}
+  caption={t.caption}
+>
+  <div class="gate">
+    <ol class="gate__list" role="list">
+      {
+        t.gates.map((gate, i) => (
+          <li class="gate__item">
+            <span class="gate__num mono">{String(i + 1).padStart(2, '0')}</span>
+            <div class="gate__main">
+              <p class="gate__check">{gate.check}</p>
+              <p class="gate__detail mono">{gate.detail}</p>
+            </div>
+            <p class="gate__exit mono">
+              <span class="gate__exitArrow" aria-hidden="true"></span>
+              {gate.exit}
+            </p>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="gate__score">
+      <p class="label">{t.passLabel}</p>
+      <ul role="list">
+        {t.scoring.map((rule) => <li>{rule}</li>)}
+      </ul>
+    </div>
+  </div>
+</DiagramFrame>
+
+<style>
+  .gate {
+    display: grid;
+    gap: var(--space-7);
+  }
+
+  .gate__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+  }
+
+  .gate__item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'num main'
+      'num exit';
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-4);
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .gate__item:first-child {
+    border-block-start: 0;
+    padding-block-start: 0;
+  }
+
+  .gate__num {
+    grid-area: num;
+    color: var(--text-muted);
+    padding-block-start: 0.15em;
+  }
+
+  .gate__main {
+    grid-area: main;
+  }
+
+  .gate__check {
+    font-size: var(--text-small);
+    font-weight: 500;
+  }
+
+  .gate__detail {
+    margin-block-start: 2px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .gate__exit {
+    grid-area: exit;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--accent-text);
+  }
+
+  .gate__exitArrow {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-block-end: 1px solid currentColor;
+    border-inline-end: 1px solid currentColor;
+    transform: rotate(-45deg);
+  }
+
+  .gate__score ul {
+    list-style: none;
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .gate__score li {
+    position: relative;
+    padding-inline-start: var(--space-5);
+    font-size: var(--text-small);
+    color: var(--text-secondary);
+  }
+
+  .gate__score li::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 0.6em;
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+  }
+
+  @media (width >= 900px) {
+    .gate {
+      grid-template-columns: 1.4fr 1fr;
+      gap: var(--space-8);
+      align-items: start;
+    }
+
+    .gate__item {
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas: 'num main exit';
+      align-items: center;
+      gap: var(--space-5);
+    }
+
+    .gate__score {
+      padding-inline-start: var(--space-7);
+      border-inline-start: 1px solid var(--border-hairline);
+    }
+  }
+</style>

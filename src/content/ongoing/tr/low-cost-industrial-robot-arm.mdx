@@ -1,0 +1,191 @@
+---
+order: 1
+status: ongoing
+title: Low Cost Industrial Robot Arm
+subtitle: Düşük maliyetli bir makinede ne kadar hassasiyet sağlanabileceğini görmek için sıfırdan tasarlayıp yapmayı planladığım beş eksenli robot kol.
+summary: ~200 € donanım bütçesiyle sıfırdan tasarlamayı hedeflediğim 5 eksenli robot kol. Amacım sadece kolu hareket ettirmek değil. İyi bir mekanik tasarım, düşük backlash, kalibrasyon ve kontrolle bu bütçede ne kadar tekrarlanabilirlik sağlanabileceğini görmek istiyorum.
+updated: Eylül 2026
+statusLine: Elegoo Centauri Carbon sipariş edildi · mekanik mimari ve bileşen seçimi planlanıyor
+context: Kişisel proje
+started: Eyl 2026
+focus: Mekanik tasarım, imalat, kalibrasyon
+targetLine: 5 eksen · ~200 € donanım hedefi · 3D baskı yapı
+targets:
+  - key: Eksen
+    value: 5 mafsallı eksen
+  - key: Donanım bütçesi
+    value: 3D yazıcı hariç ~200 € hedefi
+  - key: Yapı
+    value: Uygun olan yapısal parçaların 3D baskıyla üretilmesi
+  - key: Backlash
+    value: Mafsal ve aktarım tasarımının izin verdiği en düşük boşluk
+  - key: Rijitlik
+    value: Beş eksenin tamamında yüksek mekanik rijitlik
+  - key: Konumlandırma
+    value: Tekrarlanabilir uç eleman konumlandırması
+  - key: Ölçüm
+    value: Kalibrasyon ve konumlandırma hatalarının kol üretildikten sonra ölçülmesi
+  - key: Entegrasyon
+    value: İleride 3D baskı sırasında otomatik parça yerleştirme
+targetsNote: >-
+  Bunlar kolun şu anda sağladığı özellikler değil, tasarımda ulaşmak istediğim
+  hedefler. Henüz üretilmiş bir kol veya yapılmış bir ölçüm yok.
+currentStatus:
+  - 'Projeyi yapmaya karar verdim ve çalışmaya başladım.'
+  - 'Elegoo Centauri Carbon 3D yazıcı sipariş edildi. Yapısal parçalar bu makinede basılacak.'
+  - 'Mekanik mimari planlanıyor: mafsal yerleşimi, uzuv geometrisi, rulman ve aktarım düzeni.'
+  - 'Bileşen seçimi planlanıyor. Motorlar, redüktörler, enkoderler, sürücüler ve kontrol elektroniği henüz seçilmedi; bunları mekanik gereksinimlerden yola çıkarak seçmek işin bir parçası.'
+  - 'CAD tasarımına ve fiziksel prototip aşamasına henüz geçmedim. Henüz parça basılmadı, montaj veya ölçüm yapılmadı.'
+statusNote: >-
+  Bu sayfa çalışma ilerledikçe güncellenecek. Hassasiyet, tekrarlanabilirlik
+  ve maliyet rakamları, ölçülebilecek bir kol üretildiğinde eklenecek.
+chapters:
+  - { id: 'why', label: 'Neden yapıyorum' }
+  - { id: 'goal', label: 'Hedef' }
+  - { id: 'learn', label: 'Ne öğrenmek istiyorum' }
+  - { id: 'use-case', label: 'Uzun vadeli kullanım' }
+  - { id: 'questions', label: 'Mühendislik soruları' }
+  - { id: 'status', label: 'Güncel durum' }
+media:
+  src: ../../../assets/projects/low-cost-robot-arm/arm-concept.png
+  alt: Planlanan beş eksenli robot kolun konsept illüstrasyonu; grafit renkli nervürlü uzuvlar ve sarı kapaklar, döner bir taban, omuz ve dirsek mafsalları ve bilekte kompakt bir takım flanşı.
+  caption: 'Konsept görseli: mekanik yapı CAD çalışmaları sırasında değişebilir. Görsel, üretilmiş bir donanımın fotoğrafı veya tamamlanmış bir tasarım değil.'
+seo:
+  description: 'Devam eden projem: ~200 € donanım bütçeli, sıfırdan tasarlayacağım 5 eksenli robot kol. Düşük maliyetle hassasiyet ve tekrarlanabilirlik sağlamayı hedefliyorum.'
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+
+<Chapter
+  id="why"
+  index="01"
+  title="Neden yapıyorum"
+  deck="Şimdiye kadar daha çok robotiğin yazılım tarafında çalıştım. Bu projeyi, daha az deneyimli olduğum mekanik tarafı öğrenmek için yapıyorum."
+>
+
+Şimdiye kadarki çalışmalarım çoğunlukla yazılım üzerineydi: robot programlama,
+otomasyon ve makine öğrenmesi. Bu sitedeki Writing Robot iyi bir örnek. Metni
+FANUC hareketlerine dönüştüren bir program yazdım, ama en zor sorun mekanikte
+çıktı. Kalem düzgün çizgi çizmiyordu. Yazılımda kalibrasyonu ne kadar hassas
+yaparsam yapayım sorun çözülmedi; kalem tutucuya eklediğim yayla çözüldü.
+
+Bu deneyim aklımda kaldı. Sorun kodda değildi ve mekanik bilgim bunu önceden
+fark etmeye yetmemişti. Bu yüzden yeni projemde özellikle mekanik tasarıma
+odaklanıyorum. Bir makineyi sıfırdan tasarlamak, parçalarını basmak, monte
+etmek ve ölçerek nerede hata yaptığımı bulmak istiyorum.
+
+Çalıştığım FANUC gibi endüstriyel kolları, öğrenmek istediğim tasarım
+*yaklaşımı* açısından örnek alıyorum. Makine nasıl rijit tutuluyor? Mafsallar
+nasıl destekleniyor? Hareket boşluksuz nasıl aktarılıyor? Aynı maliyeti veya
+teknik özellikleri hedeflemiyorum; bu kararların mantığını öğrenmek istiyorum.
+
+</Chapter>
+
+<Chapter
+  id="goal"
+  index="02"
+  title="Hedef"
+  deck="Kolu hareket ettirmek işin kolay kısmı. Asıl hedef, tekrar aynı konuma gelebilmesi."
+>
+
+Beş eksenli mafsallı bir kol; yapısal parçaları bir Elegoo Centauri Carbon'da
+basılacak ve yazıcının kendisi hariç şu anki donanım hedefi 200 € civarında. Bu
+rakam, tasarımda gözettiğim bütçe hedefi. Henüz bu bütçeyi sağlayan bir parça
+listesi hazırlamış değilim.
+
+Asıl önemsediğim tekrarlanabilirlik. Bu bütçeyle yapılacak bir makinede ne
+kadar hassasiyet ve mekanik kararlılık sağlanabileceğini, hangi tasarım
+kararlarının en çok fark yaratacağını öğrenmek istiyorum:
+
+<SpecList
+  items={[
+    { key: 'Yapı', value: 'Baskıyla üretilen kol parçalarının rijitliği ve ilk nereden esneyecekleri' },
+    { key: 'Mafsallar', value: 'Her eksende mafsal tasarımı ve rulman desteği' },
+    { key: 'Aktarım', value: 'Backlash ve hangi aktarım tercihlerinin onu azalttığı' },
+    { key: 'Tahrik', value: 'Mekanik gereksinimlerden yola çıkan aktüatör seçimi' },
+    { key: 'Toleranslar', value: 'Baskı toleransları, geçme ve birikmiş boşluk' },
+    { key: 'Kontrol', value: 'Mekanik yapı netleştiğinde kalibrasyon ve kontrol' },
+  ]}
+/>
+
+Bu sayfada hiçbir doğruluk değeri yok ve kolu yapıp ölçene kadar da olmayacak.
+Hangi hassasiyete ulaşabileceğini henüz bilmiyorum.
+
+</Chapter>
+
+<Chapter
+  id="learn"
+  index="03"
+  title="Ne öğrenmek istiyorum"
+  deck="Öğrenmek istediklerimi somut olarak sıraladım. Bu projede asıl amacım, ortaya çıkacak koldan çok kazanacağım beceriler."
+>
+
+- **SolidWorks ve CAD.** Eskiz değil, gerçekten imal edilecek parçalar tasarlamak.
+- **Mekanik tasarım.** Yükün yapı içinde nasıl aktarıldığı, nerede esneme oluştuğu ve bunun nasıl önleneceği.
+- **Mafsal yapısı.** Bir eksen gerçekte nasıl bir arada tutuluyor ve destekleniyor.
+- **Toleranslar ve geçmeler.** Yazıcının gerçekten sağlayabildiği ölçü hassasiyetine göre tasarım yapmak.
+- **Rulmanlar.** Seçim, ön yükleme ve bir mafsalın rijitliğine ne kadar katkı verdikleri.
+- **Aktarımlar.** Kayışlar, dişliler, redüksiyon ve her tercihin getirdiği backlash.
+- **Aktüatör seçimi.** Motorları tahminle değil, tork ve ataletten yola çıkarak boyutlandırmak.
+- **İmalat ve montaj.** Birbirine oturan parçaları basmak, işlemek ve monte etmek.
+- **Kalibrasyon.** Makinenin hareketini ölçmek ve hatalarını düzeltmek.
+- **Hata yayılımı.** Tabandaki küçük bir hatanın uçta nasıl büyük bir hataya dönüştüğü.
+
+Daha geniş amaç, yalnızca işin dijital tarafında çalışmak yerine bir sistemi
+mekanik tasarımdan yazılım ve kontrole kadar götürebilen bir mühendis olmak.
+
+</Chapter>
+
+<Chapter
+  id="use-case"
+  index="04"
+  title="Uzun vadeli kullanım"
+  deck="Burada hassasiyetin önemli olmasının sebebi, kola yaptırmak istediğim belirli bir iş."
+>
+
+Uzun vadeli hedefim, kolu 3D baskı sürecime dahil etmek; böylece yazıcı ile robot aynı
+parça üzerinde birlikte çalışacak:
+
+<SystemPanel
+  title="Hedeflediğim akış"
+  rows={[
+    'Yazıcı parçayı basmaya başlayacak ve önceden belirlenen aşamada duracak.',
+    'Kol, baskısı devam eden parçaya yaklaşacak.',
+    'Baskıyla üretilemeyen bir rulmanı, dişliyi veya metal insert parçasını, bunun için bırakılmış yuvaya yerleştirecek.',
+    'Kol çalışma alanından çekilecek.',
+    'Yazıcı, yerleştirilen bileşenin çevresine baskı yaparak devam edecek.',
+  ]}
+/>
+
+Bu henüz var olan bir özellik değil, ilerisi için hedefim. Mekanik tasarıma
+bu kadar önem vermemin nedeni de bu. Kol, yarısı basılmış bir parçadaki küçük
+yuvaya her seferinde doğru şekilde ulaşabilmeli. Bunu yaparken baskıya
+çarpmamalı veya mevcut katmanları bozmamalı. Yukarıdaki tasarım hedeflerini
+bu gereksinime göre belirliyorum.
+
+</Chapter>
+
+<Chapter
+  id="questions"
+  index="05"
+  title="Mühendislik soruları"
+  deck="Henüz cevabını bilmediğim soruları şimdiden yazıyorum. İleride elde ettiğim sonuçları bunlarla karşılaştıracağım."
+>
+
+- Düşük maliyetli, çoğunlukla basılmış bir robot gerçekçi olarak ne kadar hassasiyete ulaşabilir?
+- Konum hatası gerçekte nereden geliyor? Yapıdan, mafsallardan, aktarımdan mı,
+  yoksa kontrolden mi?
+- Kalibrasyon mekanik hataları ne kadar telafi edebilir? Hangi hatalar
+  yazılımla düzeltilemez?
+- Mekanik sınırlar yüzünden yazılımı iyileştirmenin artık işe yaramadığı
+  nokta neresi?
+- Çoğunlukla 3D baskı bir yapı, beş mafsallı eksen boyunca ne kadar rijit
+  kalabilir ve rijitlik ilk hangi eksende yetersiz kalır?
+
+Bazı cevaplar beklediğim kadar iyi çıkmayabilir. Soruları üretime başlamadan
+önce yazmamın nedeni de bu: sonuçları gördükten sonra hedefleri fark
+ettirmeden değiştirmek daha zor olsun istiyorum.
+
+</Chapter>

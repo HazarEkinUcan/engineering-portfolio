@@ -1,0 +1,57 @@
+---
+/**
+ * The not-found page, in one language.
+ *
+ * A static host serves exactly one 404 document for the whole site, and that is
+ * the English one at the root. `/tr/404` and `/de/404` are real pages a visitor
+ * can be sent to, but whether a mistyped URL under /tr reaches them depends on
+ * the host's rewrite rules, not on anything this repository can decide. See
+ * planning/i18n-architecture.md.
+ */
+import Base from '../../layouts/Base.astro';
+import type { Locale } from '../../i18n/locales';
+import { href } from '../../i18n/paths';
+import { t } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const ui = t(locale);
+---
+
+<Base locale={locale} title={ui.notFound.metaTitle} description={ui.notFound.metaDescription}>
+  <section class="section notfound">
+    <div class="wrap">
+      <p class="label">{ui.notFound.code}</p>
+      <h1>{ui.notFound.heading}</h1>
+      <p class="notfound__body">{ui.notFound.body}</p>
+      <p class="notfound__actions">
+        <a class="btn btn--primary" href={href('/', locale)}>{ui.notFound.action}</a>
+      </p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .notfound {
+    display: grid;
+    place-items: center;
+    min-height: 52vh;
+    text-align: center;
+  }
+
+  .notfound h1 {
+    margin-block-start: var(--space-4);
+    max-width: 18ch;
+  }
+
+  .notfound__body {
+    margin-block-start: var(--space-4);
+    color: var(--text-secondary);
+  }
+
+  .notfound__actions {
+    margin-block-start: var(--space-7);
+  }
+</style>

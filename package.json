@@ -1,0 +1,38 @@
+{
+  "name": "hazar-ekin-ucan-portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "i18n:gen": "node .verify/gen-locale.mjs && node .verify/gen-locale.mjs src/i18n/diagrams DiagramStrings",
+    "fonts": "node scripts/copy-fonts.mjs",
+    "signature": "node scripts/build-signature.mjs",
+    "media": "bash scripts/encode-media.sh",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^4.3.0",
+    "@astrojs/sitemap": "^3.5.0",
+    "astro": "^5.13.0",
+    "sharp": "^0.34.3",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@ibm/plex-mono": "^1.1.0",
+    "@ibm/plex-sans": "^1.1.0",
+    "@ibm/plex-serif": "^1.1.0",
+    "prettier": "^3.6.0",
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "^5.9.2"
+  }
+}

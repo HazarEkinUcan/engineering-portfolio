@@ -1,0 +1,11 @@
+/* Layer order is declared once, here, before anything is imported.
+   technical-plan.md §1.2 */
+@layer reset, tokens, base, layout, components, utilities;
+
+@import './reset.css';
+@import './tokens.css';
+@import './fonts.css';
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+@import './signature.css';

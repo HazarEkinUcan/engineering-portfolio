@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="820" viewBox="0 0 1000 820" role="img" aria-labelledby="title desc">
+<title id="title">History before the current driver row</title><desc id="desc">A driver-specific training feature: shift first, then take the rolling mean.. Schematic based on supplied project sources, not measured results.</desc>
+<rect width="1000" height="820" fill="#0f1113"/>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#a2a8ad"/></marker></defs>
+<text x="48" y="40" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">F1 / TEMPORAL FEATURES / SCHEMATIC</text>
+<text x="48" y="88" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700">History before the current driver row</text>
+<text x="48" y="122" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">A driver-specific training feature: shift first, then take the rolling mean.</text>
+<rect x="48" y="176" width="208" height="99" rx="8" fill="#16191c" stroke="#f0b429" stroke-width="1.5"/>
+<text x="68" y="209" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Race N−3</text>
+<text x="68" y="240" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Past result</text>
+<rect x="280" y="176" width="208" height="99" rx="8" fill="#16191c" stroke="#f0b429" stroke-width="1.5"/>
+<text x="300" y="209" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Race N−2</text>
+<text x="300" y="240" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Past result</text>
+<rect x="512" y="176" width="208" height="99" rx="8" fill="#16191c" stroke="#f0b429" stroke-width="1.5"/>
+<text x="532" y="209" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Race N−1</text>
+<text x="532" y="240" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Past result</text>
+<rect x="744" y="176" width="208" height="99" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5"/>
+<text x="764" y="209" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Race N</text>
+<text x="764" y="240" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Current result</text>
+<path d="M151 278 V310 H615 V278" fill="none" stroke="#a2a8ad" stroke-width="1.8"/>
+<path d="M383 310 V353" fill="none" stroke="#a2a8ad" stroke-width="1.8" marker-end="url(#arrow)"/>
+<rect x="48" y="363" width="648" height="116" rx="8" fill="#16191c" stroke="#f0b429" stroke-width="1.5"/>
+<text x="68" y="396" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">shift(1) → rolling(3)</text>
+<text x="68" y="427" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Use prior driver results only</text>
+<text x="68" y="453" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">min_periods=1 when fewer past rows exist</text>
+<rect x="740" y="363" width="208" height="116" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="759" y="397" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">Excluded</text>
+<text x="759" y="426" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400">Current driver’s</text>
+<text x="759" y="451" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400">finish outcome</text>
+<path d="M844 278 V354" fill="none" stroke="#a2a8ad" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+<path d="M372 481 V520" fill="none" stroke="#a2a8ad" stroke-width="1.8" marker-end="url(#arrow)"/>
+<rect x="48" y="530" width="904" height="96" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5"/>
+<text x="68" y="563" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Race N feature row</text>
+<text x="68" y="594" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Driver form + driver/circuit history feed the ranking model</text>
+<rect x="48" y="657" width="904" height="105" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5"/>
+<text x="68" y="688" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700">Scope matters</text>
+<text x="68" y="715" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Team windows are row-based: a teammate’s same-race result can enter history.</text>
+<text x="68" y="741" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">statusId is a separate limitation. This is not proof that the full model is leak-free.</text>
+<text x="48" y="792" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400">Training-row schematic; the prediction helper has a separate history offset noted in the manifest.</text>
+</svg>

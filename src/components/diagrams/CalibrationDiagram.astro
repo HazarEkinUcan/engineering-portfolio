@@ -1,0 +1,233 @@
+---
+import DiagramFrame from './DiagramFrame.astro';
+
+/**
+ * Baseline → upperline personal calibration. The most important drawing on
+ * the site: the whole second case study rests on it.
+ *
+ * What it must show, in priority order (design-spec.md §9):
+ *   1. two labelled anchors as the ends of one axis, 0 and 100 beneath
+ *   2. that the axis is PERSONAL — two speakers, visibly different absolute
+ *      values, the same relative marker position
+ *   3. a marker at a position along the axis
+ *   4. the negative-gap case, as a small secondary third axis
+ *
+ * The numbers on the axes are unit labels illustrating the method, not
+ * measurements: they are marked as such in the caption. No dataset is
+ * implied and no result is depicted.
+ */
+
+import { diagramsFor } from '../../i18n/diagrams';
+
+const t = diagramsFor(Astro.url).calibration;
+
+/* Frequencies, rates and marker positions are data and stay here. */
+const speakers = [
+  {
+    name: t.speakerA,
+    note: t.speakerANote,
+    baseline: '112 Hz',
+    upperline: '196 Hz',
+    marker: 62,
+  },
+  {
+    name: t.speakerB,
+    note: t.speakerBNote,
+    baseline: '78 Hz',
+    upperline: '121 Hz',
+    marker: 62,
+  },
+];
+---
+
+<DiagramFrame
+  label={t.label}
+  caption={t.caption}
+>
+  <div class="cal">
+    {
+      speakers.map((speaker) => (
+        <div class="cal__row">
+          <div class="cal__who">
+            <p class="cal__name">{speaker.name}</p>
+            <p class="cal__note mono">{speaker.note}</p>
+          </div>
+
+          <div class="cal__axis" style={`--marker:${speaker.marker}%`}>
+            <div class="cal__line" aria-hidden="true" />
+            <div class="cal__cap cal__cap--start" aria-hidden="true" />
+            <div class="cal__cap cal__cap--end" aria-hidden="true" />
+            <div class="cal__marker" aria-hidden="true">
+              <span class="cal__markerValue mono">{speaker.marker}</span>
+            </div>
+
+            <p class="cal__anchor cal__anchor--start">
+              <span class="label">{t.baseline}</span>
+              <span class="mono cal__val">{speaker.baseline}</span>
+              <span class="mono cal__scale">0</span>
+            </p>
+            <p class="cal__anchor cal__anchor--end">
+              <span class="label">{t.upperline}</span>
+              <span class="mono cal__val">{speaker.upperline}</span>
+              <span class="mono cal__scale">100</span>
+            </p>
+          </div>
+        </div>
+      ))
+    }
+
+    <div class="cal__row cal__row--signed">
+      <div class="cal__who">
+        <p class="cal__name">{t.signed}</p>
+        <p class="cal__note mono">{t.signedNote}</p>
+      </div>
+
+      <div class="cal__axis cal__axis--signed" style="--marker:62%">
+        <div class="cal__line" aria-hidden="true"></div>
+        <div class="cal__cap cal__cap--start" aria-hidden="true"></div>
+        <div class="cal__cap cal__cap--end" aria-hidden="true"></div>
+        <div class="cal__marker" aria-hidden="true">
+          <span class="cal__markerValue mono">62</span>
+        </div>
+
+        <p class="cal__anchor cal__anchor--start">
+          <span class="label">{t.baseline}</span>
+          <span class="mono cal__val">5.4 syll/s</span>
+          <span class="mono cal__scale">0</span>
+        </p>
+        <p class="cal__anchor cal__anchor--end">
+          <span class="label">{t.upperline}</span>
+          <span class="mono cal__val">4.1 syll/s</span>
+          <span class="mono cal__scale">100</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</DiagramFrame>
+
+<style>
+  .cal {
+    display: grid;
+    gap: var(--space-8);
+  }
+
+  .cal__row {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .cal__row--signed {
+    padding-block-start: var(--space-7);
+    border-block-start: 1px solid var(--border-hairline);
+    opacity: 0.85;
+  }
+
+  .cal__name {
+    font-weight: 500;
+    font-size: var(--text-small);
+  }
+
+  .cal__note {
+    color: var(--text-muted);
+  }
+
+  .cal__axis {
+    position: relative;
+    padding-block: var(--space-7) var(--space-8);
+  }
+
+  .cal__line {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline: 0;
+    height: 1px;
+    background: var(--text-primary);
+  }
+
+  .cal__cap {
+    position: absolute;
+    inset-block-start: calc(50% - 5px);
+    width: 1px;
+    height: 11px;
+    background: var(--text-primary);
+  }
+
+  .cal__cap--start {
+    inset-inline-start: 0;
+  }
+  .cal__cap--end {
+    inset-inline-end: 0;
+  }
+
+  .cal__marker {
+    position: absolute;
+    inset-block-start: calc(50% - 5px);
+    inset-inline-start: var(--marker);
+    width: 10px;
+    height: 10px;
+    margin-inline-start: -5px;
+    background: var(--accent);
+  }
+
+  /* The marker slides from the baseline anchor to its position, once.
+     Where scroll-driven animations are unavailable it is simply drawn in
+     place — a correct static end state, which is all the spec requires. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .cal__marker {
+        animation: cal-slide var(--dur-slower) var(--ease-out) both;
+        animation-timeline: view();
+        animation-range: entry 20% cover 34%;
+      }
+    }
+  }
+
+  @keyframes cal-slide {
+    from {
+      transform: translateX(calc(var(--marker) * -1));
+    }
+  }
+
+  .cal__markerValue {
+    position: absolute;
+    inset-block-start: -1.9em;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    color: var(--accent-text);
+    font-weight: 500;
+  }
+
+  .cal__anchor {
+    position: absolute;
+    inset-block-start: calc(50% + var(--space-4));
+    display: grid;
+    gap: 2px;
+    margin: 0;
+  }
+
+  .cal__anchor--start {
+    inset-inline-start: 0;
+  }
+
+  .cal__anchor--end {
+    inset-inline-end: 0;
+    text-align: right;
+    justify-items: end;
+  }
+
+  .cal__val {
+    color: var(--text-primary);
+  }
+
+  .cal__scale {
+    color: var(--text-muted);
+  }
+
+  @media (width >= 768px) {
+    .cal__row {
+      grid-template-columns: 11rem 1fr;
+      align-items: center;
+      gap: var(--space-7);
+    }
+  }
+</style>

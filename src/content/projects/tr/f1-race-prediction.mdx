@@ -1,0 +1,284 @@
+---
+order: 4
+status: published
+title: F1 Race Result Prediction
+subtitle: Makine öğrenmesini, takip ettiğim Formula 1 üzerinden öğrendim. Geçmiş sonuçlarla bir sıralama modeli hazırlayıp bunu, girilen başlangıç sırasından yarış sonucunu tahmin eden bir uygulamaya dönüştürdüm.
+summary: Yetmiş beş yıllık Formula 1 sonuçları yarışlara göre gruplanıp eğitim verisine dönüştürüldü. Sürücü ve takım formu, yarışın kendi sonucunu kullanmamak için kaydırılarak hesaplandı. LightGBM sıralama modeli, Streamlit uygulamasında elle girilen başlangıç sırasından bitiş sırasını tahmin ediyor.
+roleLabel: Veri işleme, model ve uygulama
+context: Veri analizi stajım sırasında kendi inisiyatifimle
+period: Ağu 2025
+stack:
+  - Python
+  - LightGBM
+  - pandas
+  - Streamlit
+  - BeautifulSoup
+evidence:
+  - code
+  - output
+role: >-
+  Yakından takip ettiğim bir konu üzerinden makine öğrenmesini öğrenmek için
+  başladım. Ham tarihsel tablolardan çalışan uygulamaya kadar tüm aşamalarda
+  çalıştım: veriyi hazırlayıp birleştirdim, güncel sezon verilerini toplayan
+  scraper’ı ve geçmiş form özelliklerini hazırladım. Yarışın kendi sonucunu
+  özelliklerinden ayırmak için kaydırma kullandım. Regresyon yerine sıralama
+  modeli eğitmeyi seçtim. Başlangıç sırası girişi, yapıştırılan isim listesinin
+  işlenmesi ve giriş kontrolleriyle Streamlit arayüzünü hazırladım.
+limits: >-
+  Modelin önemli bir kısıtı var. Öznitelik listesi hâlâ, bir aracın bitirip
+  bitirmediğini, terk mi ettiğini yoksa kaza mı yaptığını kaydeden yarış durum
+  kodunu içeriyor. Bu, yarışın bir sonucu ve yarıştan önce bilinebilecek bir şey
+  değil; tahmin anında ise basitçe boş bırakılıyor. Geçmiş form özellikleri bu sızıntıya karşı korunuyor; sıralama turu
+  sonuçları ve başlangıç sırası da yarıştan önce biliniyor. Yine de durum
+  sütunu çıkarılıp model yeniden eğitilmeden tüm veri işleme sürecinin
+  sızıntısız olduğunu söylemem. Bunun ötesinde model hava durumu, lastik
+  stratejisi, güvenilirlik, güncellemeler ya da sezon ortası sürücü değişiklikleri
+  hakkında hiçbir şey bilmiyor. Gördüğü tek şey bir grid ve bitiş pozisyonlarının
+  geçmişi.
+glance:
+  what: Bir Formula 1 yarışının bitiş sırasını başlangıç gridinden tahmin eden, etkileşimli uygulama üzerinden kullanılan bir sıralama modeli.
+  built: Veri işleme süreci, geçmiş sonuçlardan özellik çıkarımı, LightGBM sıralama modeli ve onu kullanan Streamlit uygulaması.
+chapters:
+  - { id: 'why', label: 'Zaten önemsediğim bir konu' }
+  - { id: 'data', label: 'Yetmiş beş yıllık sonuç' }
+  - { id: 'features', label: 'Yarıştan önce bilinenler' }
+  - { id: 'app', label: 'Modelden uygulamaya' }
+  - { id: 'limits', label: 'Sınırlar ve kısıtlar' }
+card:
+  media: ../../../assets/projects/f1-prediction/racing-motion-blur.jpg
+  alt: Pistte hız yapan bir yarış arabası; arka plan, kamerayla takip edildiği için yatay hareket bulanıklığına dönüşmüş.
+  credit: Fotoğraf Jerry Wei, Unsplash. Konuyu göstermek için kullanılıyor, proje çıktısı değil
+  creditHref: https://unsplash.com/photos/a-race-car-speeding-on-a-track-with-motion-blur-AvL3AXW0iKY
+hero:
+  media: ../../../assets/projects/f1-prediction/racing-motion-blur.jpg
+  alt: Pistte hız yapan bir yarış arabası; arka plan, kamerayla takip edildiği için yatay hareket bulanıklığına dönüşmüş.
+  credit: Fotoğraf Jerry Wei, Unsplash. Konuyu göstermek için kullanılıyor, proje çıktısı değil
+  creditHref: https://unsplash.com/photos/a-race-car-speeding-on-a-track-with-motion-blur-AvL3AXW0iKY
+seo:
+  description: Geçmiş Formula 1 sonuçlarından yarış bazında gruplanmış bir LightGBM sıralama modeli ve gridden bitiş sırası tahmin eden bir Streamlit uygulaması.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import Figure from '../../../components/content/Figure.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+import ThemeFigure from '../../../components/content/ThemeFigure.astro';
+import featureDebug from '../../../assets/projects/f1-prediction/feature-debug.jpg';
+import predictedOrder from '../../../assets/projects/f1-prediction/predicted-order.jpg';
+import appOverview from '../../../assets/projects/f1-prediction/app-overview.jpg';
+import coverageLight from '../../../assets/projects/f1-prediction/dataset-coverage-light.svg?url';
+import coverageDark from '../../../assets/projects/f1-prediction/dataset-coverage-dark.svg?url';
+import rankingLight from '../../../assets/projects/f1-prediction/ranking-pipeline-light.svg?url';
+import rankingDark from '../../../assets/projects/f1-prediction/ranking-pipeline-dark.svg?url';
+import temporalLight from '../../../assets/projects/f1-prediction/temporal-features-light.svg?url';
+import temporalDark from '../../../assets/projects/f1-prediction/temporal-features-dark.svg?url';
+
+<Chapter
+  id="why"
+  index="01"
+  title="Zaten önemsediğim bir konu"
+  deck="Bir yöntemi öğrenmenin en hızlı yolu, onu zaten ilgiyle takip edip tartıştığınız bir konuda denemek."
+>
+
+Formula 1 takip ediyorum ve beni bu alana en başta çeken şey arabalar ile
+mühendisliğin otomotiv tarafıydı. Makine öğrenmesini okumak yerine gerçekten
+öğrenmek istediğimde, başlamak için en doğal konu bu oldu. İyi bir
+cevabın neye benzediğini zaten biliyordum ve model bana saçma bir şey söylese
+hemen fark ederdim.
+
+Bu, beklediğimden daha çok işe yaradı. Hataları yakalayan şey sporu bilmekti.
+Model, orta sıralarda yarışan bir araçtaki sürücüyü pole pozisyonuna
+koyduğunda, bir ölçüm yapmadan da terslik olduğunu görebiliyorum. Sonra
+nedenini araştırıyorum.
+
+Cevabını aradığım soruyu somut ve sınırlı tuttum:
+**belirli bir Grand Prix için bir başlangıç gridi verildiğinde, hangi bitiş
+sırasını beklemeliyiz?**
+
+</Chapter>
+
+<Chapter
+  id="data"
+  index="02"
+  title="Yetmiş beş yıllık sonuç, bir eğitim setine dönüştü"
+  deck="Formula 1’in geçmiş sonuçları düzenli kaydedilmiş, ama doğrudan model eğitiminde kullanılabilecek biçimde değil."
+>
+
+Tarihsel veri seti, birbiriyle ilişkili yarış, pist, sürücü, takım, sonuç,
+sıralama turu ve durum tablolarından oluşuyor. Kayıtlar 1950 yılına kadar
+uzanıyor. İşin büyük kısmı bu tabloları model eğitimine uygun hale getirmekti.
+
+Sonuç ve yarış tabloları yarış kimliği üzerinden birleştiriliyor. Sıralama
+turlarında her sürücünün Q1 ile Q3 arasındaki en iyi derecesi seçiliyor.
+Ardından kayıtlar kronolojik sıraya konuyor; böylece geçmişe dayalı
+hesaplamalar doğru sırayla yapılıyor.
+
+Güncel sezon geçmiş veri setinde yok, ben de onun için bir scraper yazdım. Şu ana
+kadar koşulmuş 2025 Grand Prix'lerinin Wikipedia sayfalarındaki yarış sınıflandırma
+tablolarını okuyor. Sürücü ve takım adlarının farklı yazımlarını aynı
+kimlik altında topluyor, sonuçları da tarihsel dosyalarla aynı biçimde
+kaydediyor.
+
+Eğitim 1950'de değil 2021'de başlıyor. Sporun kuralları, araç konseptleri ve puan
+sistemleri o kadar çok değişti ki daha eski bir dönemden gelen bir sonuç başka bir
+sporu anlatıyor. Pencere sabit kodlanmak yerine veriden türetiliyor. Model son
+tamamlanmış sezona kadar eğitiliyor ve bir sonrakini tahmin ediyor; uygulamanın
+"2021 ile 2024 arası eğitim, 2025 tahmini" demesinin sebebi dosyaların içeriğinin
+bu olması.
+
+<ThemeFigure
+  light={coverageLight}
+  dark={coverageDark}
+  width={2400}
+  height={1720}
+  alt="1950'den 2025'e kadar sezon başına yarış sonucu ve sıralama turu kayıtlarını sayan iki çubuk grafik."
+  caption="Arşivdeki kayıtların sezonlara göre dağılımı. Sonuçlar 1950'ye kadar uzanıyor. Sıralama turu kayıtları ise ancak 1990'ların ortasında başlıyor; eğitimin en baştan değil 2021'den başlamasının sebeplerinden biri bu. Sıfır çubuk, bu dosyalarda satır olmadığı anlamına geliyor; yarış yapılmadığı anlamına değil. Grafikler yarış sayısını veya model performansını göstermiyor."
+  wide
+/>
+
+<SpecList
+  items={[
+    { key: 'Geçmiş sonuçlar', value: '27,038 yarış sonucu, 1950 ile 2025 arası' },
+    { key: 'Sıralama turları', value: '10,774 seans, yarış başına sürücü başına tek en iyi pozisyona indirgendi' },
+    { key: 'Eğitim penceresi', value: '2021 ile son tamamlanmış sezon arası' },
+    { key: 'Güncel sezon', value: 'Yarış başına Wikipedia sınıflandırma tablolarından toplanıyor' },
+    { key: 'Hedef', value: 'Learning to rank: LightGBM lambdarank, ndcg, yarış bazında gruplanmış' },
+  ]}
+/>
+
+</Chapter>
+
+<Chapter
+  id="features"
+  index="03"
+  title="Yarış başlamadan önce bilinenlerle tahmin yapmak"
+  deck="Bir spor modelinde asıl zor kısım algoritmayı seçmek değil, girdilere yarış sonucunun sızmasını önlemek."
+>
+
+Bir sürücünün son dönemdeki formu, elde bulunan en faydalı tek sinyal ve aynı
+zamanda mükemmel görünen ama hiçbir işe yaramayan bir model kurmanın en kolay
+yolu. Bir sürücünün bitiş pozisyonunun hareketli ortalaması *bu* yarışı da
+içeriyorsa, öznitelik etiketi barındırıyor demektir ve model cevabı oradan
+okumayı öğrenir.
+
+Dört form özniteliği bunun olamayacağı şekilde kuruluyor. Her biri son üç bitiş
+pozisyonunun hareketli ortalaması ve her biri önce bir yarış kaydırılıyor;
+böylece bir yarışa iliştirilen değer kesinlikle ondan önceki yarışlardan
+hesaplanıyor:
+
+<CodeExcerpt
+  file="app.py · build_training_table()"
+  caption="Kaydırma, hareketli pencereden önce geliyor; böylece bir yarış kendi özniteliğine hiçbir zaman katkı vermiyor."
+>
+{`df["drv_last3_mean"] = (
+    df.groupby("driverId")["positionOrder"]
+`}<span class="cm">{`      # shift(1) first: this race cannot see its own result`}</span>{`
+      .transform(lambda s: s.shift(1).rolling(3, min_periods=1).mean())
+)`}
+</CodeExcerpt>
+
+<ThemeFigure
+  light={temporalLight}
+  dark={temporalDark}
+  width={2000}
+  height={1640}
+  alt="Kaydırılmış üç yarışlık hareketli ortalamayı besleyen geçmiş yarışlar dizisi; güncel yarış kendi öznitelik penceresinin dışında bırakılmış."
+  caption="Bir sürücünün form özniteliğinin tek bir eğitim satırı için nasıl kurulduğu: bir yarış kaydır, sonra ondan önceki üçünün ortalamasını al. Bu bir şema ve özellikle sürücü anahtarlı öznitelikleri anlatıyor. Takım öznitelikleri yarış yerine satır bazında kaydırıyor, dolayısıyla aynı yarıştan bir takım arkadaşının sonucu hâlâ o pencerenin içine düşebiliyor."
+  wide
+/>
+
+Aynı yöntemle formu dört açıdan hesaplıyorum: sürücünün genel formu ve
+seçilen pistteki formu, takımın genel formu ve aynı pistteki formu. Monaco ve
+Monza farklı araç özelliklerini öne çıkarıyor. Bu yüzden bir takımın genel
+formu ile belirli bir pistteki formu aynı şeyi anlatmıyor.
+
+İkinci karar, modelin ne öğrenmesi gerektiğiydi. Bitiş pozisyonunu düz bir sayı olarak tahmin etmek,
+birinci ile ikinci arasındaki farkı on beşinci ile on altıncı arasındaki farkla
+aynı sayar ve tam olarak tek bir arabanın birinci bitebileceğinden habersizdir.
+Bu yüzden model bunun yerine **sıralama** yapmak üzere eğitiliyor: LightGBM'in
+`lambdarank` hedefi, satırlar yarış bazında gruplanmış halde. Böylece her yarış
+tek bir sıralama problemi oluyor ve model, sürücü başına mutlak hata yerine o
+yarışın içinde ürettiği sıra üzerinden puanlanıyor.
+
+<ThemeFigure
+  light={rankingLight}
+  dark={rankingDark}
+  width={2000}
+  height={1880}
+  alt="Geçmiş kayıtlar ve başlangıç bağlamından hareketli öznitelikler ve kategorik hizalama üzerinden yarış bazında gruplanmış bir LightGBM LambdaRank modeline giden, göreli bir sıralama üreten iş akışı."
+  caption="Her yarış ayrı bir sıralama grubu. Model, sürücülerin bitiş pozisyonunu tek tek tahmin etmek yerine hangisinin hangisinden önde bitireceğini öğreniyor. Bu bir şema; harflerle gösterilen özellik satırları temsili. Veri işleme sürecinin tamamının sızıntısız olduğunu göstermiyor."
+  wide
+/>
+
+<Figure
+  src={featureDebug}
+  alt="Uygulamanın öznitelik denetleyicisi; dört hareketli form özniteliğini, her sürücü için sıralama skorunu ve her satırda boş olan bir durum sütununu gösteriyor."
+  caption="Uygulama, tahminin hangi özelliklerle yapıldığını gösterebiliyor. Dört form sütunu kaydırılmış hareketli ortalamaları içeriyor. Sürücülerin sırası pred_score değerine göre belirleniyor. Sağdaki durum sütunu tahmin anında boş. Bu sayfanın sonunda bununla ilgili bir not var."
+  screenshot
+  wide
+/>
+
+Projeyi değerlendirirken model için yaklaşık %82 doğruluk kaydetmiştim. Bunu
+o çalışmanın sonucu olarak aktarıyorum; belgelenmiş bir protokolle yeniden
+üretilmiş bir benchmark olarak değil. Elimdeki materyallerde metriğin tanımı
+ve doğrulamanın nasıl yapıldığı yazmıyor. Bir sayıyı doğru değerlendirebilmek
+için nasıl elde edildiğini de bilmek gerekiyor.
+
+</Chapter>
+
+<Chapter
+  id="app"
+  index="04"
+  title="Eğitilmiş modeli kullanılabilir bir uygulamaya dönüştürmek"
+  deck="Notebook’taki model, önceden hazırladığınız soruları yanıtlıyor. Uygulama ise yeni girdilerle yeni tahminler yapmanızı sağlıyor."
+>
+
+Son adım, eğitilmiş modeli başlangıç sırası girilebilen bir uygulamaya
+dönüştürmekti. Uygulama
+CSV'leri yüklüyor, eğitim tablosunu kuruyor, sıralayıcıyı bir kez eğitip
+önbelleğe alıyor, sonra bir Grand Prix, bir sürücü sayısı ve doldurulacak yirmi
+pozisyon sunuyor.
+
+<Figure
+  src={appOverview}
+  alt="Tahmin uygulaması Monaco Grand Prix'sinde açık; veriden türettiği eğitim ve tahmin sezonlarını ve sürücü gridinin başını gösteriyor."
+  caption="Uygulama açılışta: veriden türettiği sezonlar, Grand Prix seçici ve doldurulmayı bekleyen gridin üst kısmı."
+  screenshot
+/>
+
+Yirmi açılır menüyü elle doldurmak hemen sıkıcı hale geliyor, bu yüzden bir
+yapıştırma kutusu var: her satıra bir isim gelecek şekilde bir liste bırakıyorsunuz,
+ilk satır pole. Türkçe karakterleri normalize ediyor, böylece Türkçe klavyede
+yazılan isimler de eşleşiyor ve tam ad eşleşmezse soyadını kullanarak
+eşleştirmeyi deniyor. Aynı sürücü iki kez görünüyorsa tahmin etmeyi reddediyor; bu, insanın
+ancak kendi başına geldikten sonra eklediği türden bir şey.
+
+<Figure
+  src={predictedOrder}
+  alt="Uygulama, yirmi sürücü için tahmin edilen bitiş sırasını ve bu sırayı belirleyen ranking skorlarını gösteriyor."
+  caption="Girilen başlangıç sırası için modelin tahmin ettiği bitiş sırası. Sürücüler ranking skoruna göre sıralanıyor. Skorlar yalnızca bu yarış içindeki göreli değerler; olasılık, tur süresi veya bitiş pozisyonu değiller."
+  screenshot
+  wide
+/>
+
+Uygulama, başlangıç sırasındaki her sürücünün güncel takımını buluyor; bu sezon yarıştıysa bu
+sezonu, yarışmadıysa en son sezonunu kullanıyor. Dört form özniteliğini seçilen
+piste göre yeniden hesaplıyor, kategorileri eğitimde kullanılanlarla
+eşleştirip modelden bir skor alıyor. Sürücüleri bu skora göre sıralayarak
+tahmini oluşturuyor.
+
+<SystemPanel
+  title="Tamamlanan uygulama ne yapıyor"
+  rows={[
+    'Geçmiş yarış, sıralama turu, sürücü, takım ve pist tablolarını yüklüyor ve birleştiriyor',
+    'Eğitim ve tahmin sezonlarını bir sabitten değil, veriden türetiyor',
+    'Her biri bir yarışın kendi sonucunu görememesi için kaydırılmış dört hareketli form özniteliği kuruyor',
+    'Satırları yarış yarış gruplayarak bir LightGBM lambdarank modeli eğitiyor',
+    'Başlangıç sırasını açılır menülerden veya yapıştırılan listeden alıyor; aynı sürücünün iki kez girilmesini engelliyor',
+    'Her sürücüyü güncel bir takıma bağlıyor ve formunu seçilen pist için yeniden hesaplıyor',
+    'Tahmin edilen bir bitiş sırası döndürüyor ve arkasındaki her öznitelik değerini gösterebiliyor',
+  ]}
+/>
+
+</Chapter>

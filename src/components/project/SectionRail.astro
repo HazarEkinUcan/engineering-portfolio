@@ -1,0 +1,73 @@
+---
+/**
+ * Four chapter titles plus the closing section. Rendered as a plain anchor
+ * list so it works as a table of contents without JavaScript; the script
+ * only adds the active state. Not rendered below 1280px — a collapsed
+ * accordion on mobile is clutter nobody opens. site-plan.md §9.
+ */
+interface Props {
+  items: { id: string; label: string }[];
+}
+const { items } = Astro.props;
+---
+
+<nav class="rail-nav" data-section-rail aria-label="Sections">
+  <ol role="list">
+    {
+      items.map((item) => (
+        <li>
+          <a href={`#${item.id}`}>{item.label}</a>
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<style>
+  .rail-nav {
+    display: none;
+  }
+
+  @media (width >= 1280px) {
+    .rail-nav {
+      display: block;
+      position: sticky;
+      top: calc(var(--header-h) + var(--space-7));
+      padding-inline-end: var(--space-5);
+    }
+
+    .rail-nav ol {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: var(--space-3);
+      border-inline-start: 1px solid var(--border-hairline);
+    }
+
+    .rail-nav a {
+      display: block;
+      padding: 2px 0 2px var(--space-4);
+      margin-inline-start: -1px;
+      border-inline-start: 1px solid transparent;
+      font-family: var(--font-mono);
+      font-size: var(--text-label);
+      letter-spacing: 0.03em;
+      line-height: 1.45;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition:
+        color var(--dur-fast) var(--ease-inout),
+        border-color var(--dur-fast) var(--ease-inout);
+    }
+
+    .rail-nav a:hover {
+      color: var(--text-secondary);
+    }
+
+    .rail-nav a.is-active {
+      color: var(--text-primary);
+      border-inline-start-color: var(--accent);
+    }
+  }
+</style>

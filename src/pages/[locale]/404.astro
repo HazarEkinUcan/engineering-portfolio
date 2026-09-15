@@ -1,0 +1,20 @@
+---
+/*
+ * `/tr/404` and `/de/404`. These are ordinary pages: a visitor can be sent to
+ * one, and the Turkish and German copies of a broken link can point at one.
+ * They do not replace the root 404 document, and on a plain static host a
+ * mistyped URL under `/tr` still lands on the English one unless the host is
+ * configured to rewrite by prefix. planning/i18n-architecture.md says what each
+ * host needs.
+ */
+import NotFoundPage from '../../components/pages/NotFoundPage.astro';
+import { PREFIXED_LOCALES, type Locale } from '../../i18n/locales';
+
+export function getStaticPaths() {
+  return PREFIXED_LOCALES.map((locale) => ({ params: { locale }, props: { locale } }));
+}
+
+const { locale } = Astro.props as { locale: Locale };
+---
+
+<NotFoundPage locale={locale} />

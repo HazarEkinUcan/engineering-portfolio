@@ -1,0 +1,331 @@
+---
+order: 3
+status: published
+title: İzmir Reservoir and Water Consumption Forecasting
+subtitle: In einem Team zu viert haben wir zehn Jahre Wasserdaten einer Stadt zu einer Monatstabelle zusammengeführt und daraus die Füllstände der Talsperren prognostiziert.
+summary: Verbrauch, Talsperrenstände, Wasserförderung und Wetter für İzmir von 2015 bis 2024 in einer Monatstabelle. Die Quellen sind direkt in den Daten dokumentiert. Einfache regularisierte Regression hat den Füllstand genauer prognostiziert als die Baum-Ensembles, gegen die wir sie getestet haben.
+roleLabel: Aufbereitung der Daten, Modellierung und Auswertung
+context: Teamprojekt · Praktikum
+period: Aug 2025
+stack:
+  - Python
+  - pandas
+  - scikit-learn
+  - Meteostat
+  - Jupyter
+evidence:
+  - dataset
+  - code
+  - output
+role: >-
+  Wir haben das Projekt zu viert umgesetzt. Bei gemeinsam erledigten Aufgaben
+  spreche ich im Folgenden von "wir". Mein eigener Beitrag waren die Daten und die Modellierung: die
+  Rohreihen bereinigen und aufbereiten, die getrennten Datensätze zu einer
+  Monatstabelle zusammenführen, das Feature Engineering, die Modelle trainieren,
+  vergleichen und bewerten, und die Visualisierung. Ich habe den Code geschrieben, der fehlende Wetterdaten über Meteostat
+  mit echten Stationsmessungen ergänzt. Außerdem habe ich die Abschlusspräsentation vorbereitet und das
+  Projekt präsentiert.
+limits: >-
+  Zwei Spalten der zusammengeführten Tabelle sind abgeleitet und nicht gemessen,
+  und nichts auf dieser Seite behandelt sie als Befund. Die Aufteilung des
+  Verbrauchs auf Haushalte, Industrie und Landwirtschaft ist ein fester
+  Verhältniswert, der auf jeden Monat angewendet wird, und keine gemessene
+  Aufschlüsselung; der Monatsverbrauch ist der Tageswert mal dreißig und keine
+  unabhängig gemessene Monatssumme. Auch der Modellvergleich hat eine wichtige
+  Einschränkung: Für die linearen Modelle und die Ensembles wurden die Daten
+  unterschiedlich in Training und Test aufgeteilt. Der Unterschied stützt
+  unsere Wahl des einfachen Modells für diesen Datensatz, ist aber kein
+  Vergleich unter kontrolliert gleichen Bedingungen. Bei 120 Zeilen gab es
+  nicht genug Daten für einen separaten Validierungsdatensatz, und die Prognose für 2025 füllt
+  ihre Wetter- und Bevölkerungseingaben mit den Mittelwerten von 2024. Das ist
+  ein vernünftiger Platzhalter und keine Wettervorhersage.
+glance:
+  what: Ein Monatsmodell für Füllstand und Wasserverbrauch in İzmir, gebaut aus zehn Jahren öffentlicher kommunaler und meteorologischer Daten.
+  built: Aufbereitung und Zusammenführung der Daten, Feature Engineering, Modellvergleich und Ergänzung fehlender Wetterdaten, damit die Tabelle nutzbar wurde.
+chapters:
+  - { id: 'problem', label: 'Zehn Jahre, eine Zeile pro Monat' }
+  - { id: 'provenance', label: 'Woher die Zahlen kamen' }
+  - { id: 'models', label: 'Warum das einfache Modell gewann' }
+  - { id: 'forecast', label: 'Das nächste Jahr prognostizieren' }
+  - { id: 'limits', label: 'Wo die Grenzen liegen' }
+card:
+  media: ../../../assets/projects/izmir-water/tahtali-card.jpg
+  alt: Luftaufnahme der Tahtalı-Talsperre, auf der Betonmauer steht DSİ, dahinter ein Stausee in bewaldeten Hügeln. Das Projekt modelliert unter anderem diese Talsperre.
+  credit: 'Foto: Andyduffraine / Wikimedia Commons, CC BY-SA 4.0, beschnitten'
+  creditHref: https://commons.wikimedia.org/wiki/File:Tahtalibaraji.jpg
+seo:
+  description: Ein Teamprojekt zu viert, das den Füllstand der Talsperren von İzmir aus zehn Jahren kommunaler Wasser- und Wetterdaten prognostiziert.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+import Figure from '../../../components/content/Figure.astro';
+import FigurePair from '../../../components/content/FigurePair.astro';
+import ThemeFigure from '../../../components/content/ThemeFigure.astro';
+import tahtali from '../../../assets/projects/izmir-water/tahtali-dam.jpg';
+import presenting from '../../../assets/projects/izmir-water/presentation.jpg';
+import rainfall from '../../../assets/projects/izmir-water/rainfall-concept.jpg';
+import timelineLight from '../../../assets/projects/izmir-water/timeline-light.svg?url';
+import timelineDark from '../../../assets/projects/izmir-water/timeline-dark.svg?url';
+import pipelineLight from '../../../assets/projects/izmir-water/pipeline-light.svg?url';
+import pipelineDark from '../../../assets/projects/izmir-water/pipeline-dark.svg?url';
+import comparisonLight from '../../../assets/projects/izmir-water/model-comparison-light.svg?url';
+import comparisonDark from '../../../assets/projects/izmir-water/model-comparison-dark.svg?url';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Zehn Jahre Wasserdaten, eine Zeile pro Monat"
+  deck="İzmirs Wasserdaten sind öffentlich, aber über verschiedene Quellen, Formate und Zeitintervalle verteilt."
+>
+
+Die Talsperren von İzmir, das Wasser, das die Stadt verbraucht, und das Wetter,
+das beides beeinflusst, sind öffentlich dokumentiert. Veröffentlicht werden sie von
+verschiedenen Stellen, in verschiedenen Formaten, in verschiedenen Abständen, und
+ein Teil steht nur in Tabellen von Jahresberichten statt in direkt nutzbaren
+Datendateien.
+
+Wir wollten zehn Jahre davon in eine einzige Monatstabelle bringen und sehen, wie
+gut sich der Füllstand daraus prognostizieren lässt. Mit einer solchen Kennzahl könnte ein Wasserversorger Entscheidungen
+planen. Wir wollten einen hinreichend kleinen, sinnvoll berichtbaren
+Prognosefehler und ein Modell, das sich den Menschen erklären lässt, die
+seine Ergebnisse nutzen.
+
+Den Umfang haben wir bewusst begrenzt. Eine Stadt, ein Jahrzehnt,
+eine Zeile pro Monat.
+
+<SpecList
+  items={[
+    { key: 'Zeitraum', value: '2015-01 bis 2024-12, 120 Monatszeilen' },
+    { key: 'Zielgrößen', value: 'Füllstand der Talsperren (%) und gespeichertes Volumen (m³)' },
+    { key: 'Eingaben', value: 'Verbrauch, Förderung, Bevölkerung, Temperatur, Niederschlag, Luftfeuchte, Luftdruck, Wind' },
+    { key: 'Verbrauchsquellen', value: 'İZSU-Anschluss- und Verbrauchsdaten, 2014 bis 2024' },
+    { key: 'Wetterquellen', value: 'Statistiken des türkischen Wetterdienstes, Lücken aus Meteostat-Stationen gefüllt' },
+  ]}
+/>
+
+Die zusammengeführte Monatstabelle ist öffentlich. Sie wurde von einem Mitglied
+des Teams auf Kaggle veröffentlicht, und es ist dieselbe Tabelle, aus der die
+Zahlen auf dieser Seite stammen.
+
+<p>
+  <a
+    class="draw-link"
+    href="https://www.kaggle.com/datasets/ahmetarifsari/izmir-water"
+    rel="noopener noreferrer"
+    target="_blank"
+  >Den Datensatz auf Kaggle ansehen <span aria-hidden="true">↗</span></a>
+</p>
+
+<FigurePair>
+  <Figure
+    slot="a"
+    src={tahtali}
+    alt="Luftaufnahme der Tahtalı-Talsperre, auf der Betonmauer steht DSİ, dahinter ein Stausee in bewaldeten Hügeln."
+    caption="Die Tahtalı-Talsperre, eine der Talsperren, die İzmir versorgen, fotografiert 2008. Das Foto veranschaulicht das Thema. Es zeigt weder ein Projektergebnis noch den Wasserstand aus dem untersuchten Zeitraum."
+    credit="Foto: Andyduffraine / Wikimedia Commons, CC BY-SA 4.0"
+    creditHref="https://commons.wikimedia.org/wiki/File:Tahtalibaraji.jpg"
+  />
+  <Figure
+    slot="b"
+    src={rainfall}
+    alt="Illustration von Regen über einem grünen Einzugsgebiet, das einen Stausee hinter einer Staumauer speist."
+    caption="Konzeptbild zum Zusammenhang hinter dem Modell: Niederschlag im Einzugsgebiet füllt den Stausee, die Stadt entnimmt Wasser. Das Bild ist eine Illustration, kein Foto von Tahtalı. Es zeigt weder dessen Gelände noch Messwerte."
+  />
+</FigurePair>
+
+</Chapter>
+
+<Chapter
+  id="provenance"
+  index="02"
+  title="Woher die Zahlen kamen, und woher nicht"
+  deck="Für jede Spalte ist die Quelle dokumentiert. Das war uns beim Aufbau der Tabelle wichtig."
+>
+
+Beim Zusammenführen öffentlicher Zeitreihen muss vor allem ihre Herkunft
+nachvollziehbar bleiben. Sonst sehen geschätzte, interpolierte und gemessene
+Werte in einer gemeinsamen Spalte gleich aus. Deshalb haben wir die Quellen
+direkt in den Daten dokumentiert, statt uns auf unsere Erinnerung zu verlassen. Die
+Verbrauchszeilen nennen den İZSU-Bericht, aus dem sie stammen, die Wetterzeilen
+nennen die Station, und die aufgefüllten Monate nennen den Dienst und den
+Abdeckungszeitraum, aus dem sie gefüllt wurden.
+
+<ThemeFigure
+  light={timelineLight}
+  dark={timelineDark}
+  width={2400}
+  height={1720}
+  alt="Zwei übereinanderliegende Diagramme: Füllstand der Talsperren in Prozent und monatlicher Niederschlag in Millimetern, beide von 2015 bis 2024."
+  caption="Die beiden Reihen, an denen die Prognose hängt, direkt aus den CSV-Dateien des Projekts: oben der Füllstand, unten der Monatsniederschlag, 120 Monate ohne Lücken. Nichts davon ist geglättet, imputiert oder prognostiziert. Die Niederschlagsspalte heißt in der Quelle MGM_İstatistik_Normaller, sie ist also als die Wetterreihe des Projekts zu lesen und nicht als unabhängig geprüfte Stationsmessungen. Der Füllstand ist der zusammengefasste Wert, nicht Tahtalı allein."
+  wide
+/>
+
+In der Wetterreihe fehlten Monate. Eine Interpolation hätte geschätzte
+Werte eingefügt und diesen Unterschied verdeckt; also habe ich die fehlenden Monate stattdessen aus den
+Stationsaufzeichnungen von Meteostat für İzmir geholt. Die Station Çiğli kommt
+zuerst, Adnan Menderes dient als Ersatzquelle. Wo die relative Luftfeuchte fehlte,
+Temperatur und Taupunkt aber vorhanden waren, wird sie über die Magnus-Formel
+abgeleitet, statt leer zu bleiben.
+
+Für meinen Code gelten zwei Regeln. Er ergänzt nur fehlende Werte und
+überschreibt keine vorhandene Messung. Außerdem hält er die Quelle in der
+Ausgabedatei fest. Wer die Datei später öffnet, kann dadurch nachvollziehen,
+woher die ergänzten Monate stammen, ohne jemanden fragen zu müssen.
+
+<CodeExcerpt
+  file="fill_izmir_real_meteostat.py"
+  caption="Nur fehlende NaN-Werte werden ergänzt. Quelle und Vorgehen werden in der Datei festgehalten."
+>
+{`for target in [col_prcp, col_nem, col_pres, col_wspd]:
+    source = target + '_ms'
+`}<span class="cm">{`    # Fill ONLY the gaps. Never overwrite a real observation.`}</span>{`
+    mask = df[target].isna() & df[source].notna()
+    df.loc[mask, target] = df.loc[mask, source]
+
+df['Kaynak_Notu'] = (
+    "Real monthly values. Source: Meteostat monthly/hourly dumps. "
+    "Station priority: Çiğli (17218) -> Adnan Menderes (17219). "
+    "Coverage: 2015-01 .. 2024-12."
+)`}
+</CodeExcerpt>
+
+<ThemeFigure
+  light={pipelineLight}
+  dark={pipelineDark}
+  width={2000}
+  height={2020}
+  alt="Ein Arbeitsablauf in sechs Schritten: Quellen, Bereinigen und Zusammenführen, Wetterlücken, Feature Engineering, Trainieren und Vergleichen, und die Prognose für 2025."
+  caption="Der Ablauf von vier öffentlichen Quellen bis zur Prognose. Das Schema beschreibt unsere Arbeitsschritte, nicht einen aufgezeichneten Trainingslauf. Die gezeigten Merkmalsgruppen kommen in den aufbereiteten Datensätzen vor; nicht jedes Modell verwendet alle davon."
+  wide
+/>
+
+Nicht jede Spalte beruht auf Messungen. Die Tabelle enthält eine
+Aufteilung des Verbrauchs auf Haushalte, Industrie und Landwirtschaft sowie eine
+Monatssumme des Verbrauchs. Beides ist abgeleitet: die Aufteilung ist ein fester
+Verhältniswert, der auf jeden Monat angewendet wird, und die Monatssumme ist der
+Tageswert mal dreißig. Sie können für die Modellbildung hilfreich sein, sind aber
+keine Messwerte; deshalb führen wir sie nirgends als Ergebnis an, weder hier noch
+in der Präsentation.
+
+</Chapter>
+
+<Chapter
+  id="models"
+  index="03"
+  title="Warum das einfache Modell gewann"
+  deck="120 Zeilen, starke Saisonalität und eine Zielgröße, die vor allem davon abhängt, wo sie letzten Monat stand."
+>
+
+Die Merkmale, auf die es ankam, waren die, die Zeit kodieren. Der Monat ging als
+Paar zyklischer Terme ein statt als schlichte Zahl, damit Dezember und Januar
+nebeneinanderliegen und nicht elf Monate auseinander. Der Wert des Vormonats und
+ein gleitender Mittelwert über drei Monate gingen als Lag-Merkmale ein. Die Jahreszeit wurde per One-Hot-Encoding abgebildet. Die Bevölkerung kam pro Kopf und als Veränderung
+gegenüber dem Vorjahr dazu, und wir haben ein Merkmal für die Zahl der Touristen
+getestet, um zu sehen, ob Sommergäste etwas erklären, was der Kalender nicht
+erklärt.
+
+Wir haben lineare, Ridge- und Lasso-Regression gegen Random Forest und Gradient
+Boosted Trees ausgewertet. Auf diesem Datensatz schnitten die regularisierten
+linearen Modelle besser ab, und zwar durchgängig bei beiden Zielgrößen.
+
+<ThemeFigure
+  light={comparisonLight}
+  dark={comparisonDark}
+  width={2400}
+  height={1820}
+  alt="Vier Balkendiagramme, die lineare, Ridge- und Lasso-Regression nach RMSE und MAE vergleichen, für den Füllstand und für das gespeicherte Wasservolumen."
+  caption="Die berichteten Fehler der drei linearen Modelle für beide Zielgrößen. Bei beiden Fehlermaßen sind kleinere Werte besser. Die Grafik wurde mit den gerundeten Werten aus unserer Auswertung neu erstellt; die Modelle wurden nicht erneut ausgeführt. Die Ensemble-Werte sind damit nicht direkt vergleichbar, da sie auf einer anderen Aufteilung in Training und Test beruhen."
+  wide
+/>
+
+<div class="table-scroll">
+  <table class="data-table">
+    <caption class="visually-hidden">
+      Fehlermaße der drei linearen Modelle für die beiden Prognoseziele, so wie
+      sie in der Abschlusspräsentation des Projekts berichtet wurden.
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Modell</th>
+        <th scope="col">Zielgröße</th>
+        <th scope="col">RMSE</th>
+        <th scope="col">MAE</th>
+        <th scope="col">MAPE</th>
+        <th scope="col">R²</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">Linear</th><td>Füllstand %</td><td class="num">2.93</td><td class="num">2.40</td><td class="num">6.74%</td><td class="num">0.913</td></tr>
+      <tr><th scope="row">Lasso</th><td>Füllstand %</td><td class="num">3.00</td><td class="num">2.46</td><td class="num">6.87%</td><td class="num">0.909</td></tr>
+      <tr><th scope="row">Ridge</th><td>Füllstand %</td><td class="num">3.65</td><td class="num">3.21</td><td class="num">9.14%</td><td class="num">0.866</td></tr>
+      <tr><th scope="row">Ridge</th><td>Volumen m³</td><td class="num">11.02M</td><td class="num">7.48M</td><td class="num">2.58%</td><td class="num">0.938</td></tr>
+      <tr><th scope="row">Linear</th><td>Volumen m³</td><td class="num">13.47M</td><td class="num">8.85M</td><td class="num">3.01%</td><td class="num">0.908</td></tr>
+      <tr><th scope="row">Lasso</th><td>Volumen m³</td><td class="num">13.47M</td><td class="num">8.85M</td><td class="num">3.01%</td><td class="num">0.908</td></tr>
+    </tbody>
+  </table>
+</div>
+
+Das liegt nicht daran, dass Bäume generell schlechter wären. 120 Monatszeilen
+sind sehr wenig Daten, und fast die gesamte Struktur in dieser Zielgröße ist
+Saisonalität plus der Stand der Reihe im Vormonat. Ein lineares Modell mit
+zyklischen und Lag-Termen bildet das direkt ab. Ein Ensemble muss diese Struktur erst aus den Daten lernen. Dafür ist der
+Datensatz hier zu klein, um sie zuverlässig zu erfassen.
+
+Eine wichtige Einschränkung: Unsere linearen und unsere Ensemble-Läufe wurden auf
+unterschiedlichen Trainings- und Testaufteilungen bewertet, die Fehlerwerte lassen sich deshalb nicht unter kontrolliert gleichen
+Bedingungen vergleichen. Sie stützen die
+Entscheidung, die wir auf diesem Datensatz getroffen haben. Sie stützen keine
+allgemeine Aussage über die eine oder die andere Modellfamilie.
+
+Wir haben auch festgehalten, wann wir die Modellwahl überdenken würden. Wochen- oder
+Tagesdaten statt Monatsdaten, ein Fehler, der zu driften beginnt, ein nicht
+lineares Muster, das in den Residuen liegen bleibt, oder eine wirklich neue
+Eingabe wie Verdunstung oder Zufluss wären jeweils ein Grund, die Ensembles noch
+einmal anzusehen.
+
+</Chapter>
+
+<Chapter
+  id="forecast"
+  index="04"
+  title="Das nächste Jahr prognostizieren"
+  deck="Ein Modell muss sich auch für Prognosen nutzen lassen."
+>
+
+Für die Projektion auf 2025 haben wir die Ridge-Regression auf den vollen zehn
+Jahren trainiert und damit die folgenden Monate prognostiziert. Die Lag- und
+Gleitmittel-Merkmale für jeden Monat in 2025 werden aus dem Ende von 2024
+berechnet. Die Eingaben, die sich nicht im Voraus wissen lassen, sind Temperatur,
+Niederschlag und Bevölkerung, und die werden mit den Mittelwerten von 2024
+gefüllt.
+
+Diese Mittelwerte sind eine vorläufige Annahme, keine Wetterprognose. Damit
+lässt sich zeigen, wie sich das Modell über ein Jahr verhält, allerdings
+unter den Wetterbedingungen von 2024. Für den praktischen Betrieb würde ich
+stattdessen meteorologische Prognosen als Eingaben verwenden. Das wäre mein
+nächster Schritt, zusammen mit einer automatischen Erfassung der
+Talsperrendaten, die wir hier noch von Hand gesammelt haben.
+
+<Figure
+  src={presenting}
+  alt="Die Präsentation des Projekts im Labor, am Tisch sitzend mit einem Laptop, die Präsentationsfolie darüber auf dem Wandbildschirm gespiegelt."
+  caption="Die Präsentation der Arbeit am Ende des Praktikums. Die Vorbereitung und der Vortrag gehörten zu meinen Aufgaben im vierköpfigen Team."
+/>
+
+<SystemPanel
+  title="Was die fertige Arbeit leistet"
+  rows={[
+    'Führt fünf öffentliche Monatsreihen für İzmir von 2015 bis 2024 in einer Tabelle zusammen',
+    'Dokumentiert die Quelle jeder Spalte sowie die ergänzten Monate und deren Quellen',
+    'Füllt fehlende Wettermonate aus echten Stationsmessungen und überschreibt dabei nie einen gemessenen Wert',
+    'Baut Merkmale für zyklischen Monat, Lag, gleitenden Mittelwert, Pro-Kopf-Werte und Vorjahresveränderung',
+    'Vergleicht lineare, Ridge- und Lasso-Regression mit Random Forest und Gradient Boosting auf beiden Zielgrößen',
+    'Berichtet MAE, RMSE, MAPE und R² für jedes Modell und jede Zielgröße',
+    'Projiziert den Füllstand über 2025 aus einem Ridge-Modell, das auf dem gesamten Zeitraum trainiert wurde',
+  ]}
+/>
+
+</Chapter>

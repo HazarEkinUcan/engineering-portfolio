@@ -1,0 +1,35 @@
+---
+/**
+ * "My role" — the positive statement of what Hazar designed, wrote and built.
+ * Boundaries are expressed here as scope, in the affirmative. Deliberately
+ * hairline rules rather than a bordered box: a box is how a page signals
+ * "caveat", and this is the opposite of one. design-spec.md §5.
+ */
+interface Props {
+  body: string;
+  /** The heading, supplied by the page in its own language. */
+  heading: string;
+}
+const { body, heading } = Astro.props;
+---
+
+<section class="role" aria-labelledby="role-heading">
+  <h2 class="label" id="role-heading">{heading}</h2>
+  <p class="role__body">{body}</p>
+</section>
+
+<style>
+  .role {
+    margin-block: var(--space-8);
+    padding-block: var(--space-6);
+    border-block: 1px solid var(--border-hairline);
+  }
+
+  .role__body {
+    margin-block-start: var(--space-3);
+    font-size: var(--text-lede);
+    line-height: var(--lh-lede);
+    color: var(--text-primary);
+    max-width: var(--w-prose);
+  }
+</style>

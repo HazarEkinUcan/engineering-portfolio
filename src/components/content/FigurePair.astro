@@ -1,0 +1,43 @@
+---
+/**
+ * FigurePair.astro — two figures side by side above 900px, stacked below.
+ *
+ * For the places where two images answer one question together: a photograph
+ * of the real thing beside an illustration of the mechanism, or the input to a
+ * tool beside its output. Each half keeps its own caption, because a shared
+ * caption across two different kinds of image is how a concept illustration
+ * ends up being read as a photograph.
+ */
+interface Props {
+  /** Lets the pair use the full media width rather than the text column. */
+  wide?: boolean;
+}
+const { wide = false } = Astro.props;
+---
+
+<div class:list={['pair', { bleed: wide }]}>
+  <slot name="a" />
+  <slot name="b" />
+</div>
+
+<style>
+  .pair {
+    margin-block: var(--space-8);
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  /* The figures inside bring their own block margin; inside the pair the grid
+     gap owns the spacing instead. */
+  .pair :global(.figure) {
+    margin-block: 0;
+  }
+
+  @media (width >= 900px) {
+    .pair {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-6);
+      align-items: start;
+    }
+  }
+</style>

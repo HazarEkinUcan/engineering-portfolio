@@ -1,0 +1,107 @@
+---
+import { site } from '../../data/site';
+import type { Locale } from '../../i18n/locales';
+import { t } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const ui = t(locale);
+---
+
+<section class="contact section" id="contact">
+  <div class="wrap contact__inner">
+    <h2 class="contact__heading">
+      {site.availability ?? ui.contact.heading}
+    </h2>
+
+    <div class="contact__email">
+      <a class="contact__address" href={`mailto:${site.email}`}>{site.email}</a>
+      <button
+        class="contact__copy mono"
+        type="button"
+        data-copy-email={site.email}
+        data-copy-label={ui.contact.copy}
+        data-copied-label={ui.contact.copied}
+        data-copied-status={ui.contact.copiedStatus}
+        data-copy-failed={ui.contact.copyFailed}
+        hidden
+      >
+        {ui.contact.copy}
+      </button>
+    </div>
+    <p class="visually-hidden" role="status" aria-live="polite" data-copy-status></p>
+
+    <ul class="contact__links" role="list">
+      {
+        site.links.map((link) => (
+          <li>
+            <a class="draw-link" href={link.href} rel="me noopener">
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .contact {
+    border-block-start: 1px solid var(--border-hairline);
+    background: var(--surface);
+  }
+
+  .contact__inner {
+    display: grid;
+    gap: var(--space-6);
+    justify-items: center;
+    text-align: center;
+  }
+
+  /* One of only two centred blocks on the site. design-spec.md §4.4. */
+  .contact__heading {
+    max-width: 26ch;
+    font-size: var(--text-h2);
+    text-wrap: balance;
+  }
+
+  .contact__email {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .contact__address {
+    font-size: var(--text-lede);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .contact__copy {
+    min-height: 36px;
+    padding-inline: var(--space-3);
+    background: none;
+    border: 1px solid var(--border-ui);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .contact__copy[data-copied] {
+    border-color: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .contact__links {
+    display: flex;
+    gap: var(--space-6);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--text-small);
+  }
+</style>

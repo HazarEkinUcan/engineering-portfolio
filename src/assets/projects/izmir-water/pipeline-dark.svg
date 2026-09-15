@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1010" viewBox="0 0 1000 1010" role="img" aria-labelledby="title desc">
+<title id="title">Weather data → reservoir forecasts</title><desc id="desc">From source preparation to the reported 2025 forecasting workflow. Schematic based on supplied project sources, not measured results.</desc>
+<rect width="1000" height="1010" fill="#0f1113"/>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#a2a8ad"/></marker></defs>
+<text x="48" y="40" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700">İZMİR WATER / SCHEMATIC</text>
+<text x="48" y="88" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700">Weather data → reservoir forecasts</text>
+<text x="48" y="122" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">From source preparation to the reported 2025 forecasting workflow</text>
+<text x="49" y="200" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">01</text>
+<rect x="110" y="165" width="842" height="99" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5"/>
+<text x="130" y="198" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Sources</text>
+<text x="130" y="229" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">İZSU water / reservoir · MGM weather · population &amp; context</text>
+<path d="M532 266 V285" fill="none" stroke="#a2a8ad" stroke-width="1.8" marker-end="url(#arrow)"/>
+<text x="49" y="324" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">02</text>
+<rect x="110" y="289" width="842" height="99" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5"/>
+<text x="130" y="322" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Clean &amp; integrate</text>
+<text x="130" y="353" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Monthly date alignment · combined project tables</text>
+<path d="M532 390 V409" fill="none" stroke="#a2a8ad" stroke-width="1.8" marker-end="url(#arrow)"/>
+<text x="49" y="448" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">03</text>
+<rect x="110" y="413" width="842" height="99" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5"/>
+<text x="130" y="446" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Weather gaps</text>
+<text x="130" y="477" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Meteostat fallback · fill missing weather fields only</text>
+<path d="M532 514 V533" fill="none" stroke="#a2a8ad" stroke-width="1.8" marker-end="url(#arrow)"/>
+<text x="49" y="572" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">04</text>
+<rect x="110" y="537" width="842" height="99" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5"/>
+<text x="130" y="570" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Feature engineering</text>
+<text x="130" y="601" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Month sin/cos · lag / rolling · per-capita / YoY fields</text>
+<path d="M532 638 V657" fill="none" stroke="#a2a8ad" stroke-width="1.8" marker-end="url(#arrow)"/>
+<text x="49" y="696" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">05</text>
+<rect x="110" y="661" width="842" height="99" rx="8" fill="#16191c" stroke="#343a3f" stroke-width="1.5"/>
+<text x="130" y="694" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">Train &amp; compare</text>
+<text x="130" y="725" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Linear · Ridge · Lasso / fill ratio and water volume</text>
+<path d="M532 762 V781" fill="none" stroke="#a2a8ad" stroke-width="1.8" marker-end="url(#arrow)"/>
+<text x="49" y="820" fill="#f0b429" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">06</text>
+<rect x="110" y="785" width="842" height="99" rx="8" fill="#16191c" stroke="#f0b429" stroke-width="1.5"/>
+<text x="130" y="818" fill="#ecedee" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">2025 forecasting</text>
+<text x="130" y="849" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400">Reported Ridge workflow · 2024-mean input assumptions</text>
+<text x="48" y="958" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400">Prepared feature families are shown, not a claim that every fitted model used every column.</text>
+<text x="48" y="982" fill="#a2a8ad" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400">2025 is a documented forecast scenario, not a measured outcome or live forecast.</text>
+</svg>

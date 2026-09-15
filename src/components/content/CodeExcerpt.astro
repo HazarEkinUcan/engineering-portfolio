@@ -1,0 +1,17 @@
+---
+/**
+ * Two colours only — code and comments — plus the accent on at most one
+ * highlighted line. No syntax-highlight rainbow. design-spec.md §5.
+ */
+interface Props {
+  file: string;
+  caption?: string;
+}
+const { file, caption } = Astro.props;
+---
+
+<div class="code reveal">
+  <p class="code__file">{file}</p>
+  <pre class="code__body"><code><slot /></code></pre>
+  {caption && <p class="figure__caption">{caption}</p>}
+</div>

@@ -1,0 +1,117 @@
+---
+import DiagramFrame from './DiagramFrame.astro';
+
+/**
+ * Project 1, diagram 3 — rigid holder versus sprung holder.
+ * Shows why compliance was the right layer to solve the problem at: the same
+ * height error produces a very different contact force in each case.
+ * The curves are the mechanism, not measured data — the caption says so.
+ */
+import { diagramsFor } from '../../i18n/diagrams';
+
+const t = diagramsFor(Astro.url).compliance;
+---
+
+<DiagramFrame
+  label={t.label}
+  caption={t.caption}
+>
+  <div class="comp">
+    <div class="comp__case">
+      <p class="comp__title">{t.rigidTitle}</p>
+      <svg viewBox="0 0 260 150" class="comp__plot" role="img"
+        aria-label={t.rigidAlt}>
+        <g class="comp__axes">
+          <line x1="34" y1="12" x2="34" y2="122"></line>
+          <line x1="34" y1="122" x2="248" y2="122"></line>
+        </g>
+        <path class="comp__curve" d="M34 122 L96 120 L150 74 L206 20 L240 12"></path>
+        <rect class="comp__band" x="120" y="12" width="34" height="110"></rect>
+      </svg>
+      <p class="comp__legend mono">{t.rigidLegend}</p>
+    </div>
+
+    <div class="comp__case comp__case--fix">
+      <p class="comp__title">{t.sprungTitle}</p>
+      <svg viewBox="0 0 260 150" class="comp__plot" role="img"
+        aria-label={t.sprungAlt}>
+        <g class="comp__axes">
+          <line x1="34" y1="12" x2="34" y2="122"></line>
+          <line x1="34" y1="122" x2="248" y2="122"></line>
+        </g>
+        <path class="comp__curve" d="M34 122 L72 92 L120 78 L186 70 L240 64"></path>
+        <rect class="comp__band comp__band--wide" x="72" y="12" width="150" height="110"></rect>
+      </svg>
+      <p class="comp__legend mono">{t.sprungLegend}</p>
+    </div>
+
+    <div class="comp__axisLabels mono" aria-hidden="true">
+      <span>{t.axisForce} ↑</span>
+      <span>{t.axisError} →</span>
+    </div>
+  </div>
+</DiagramFrame>
+
+<style>
+  .comp {
+    display: grid;
+    gap: var(--space-7);
+  }
+
+  .comp__title {
+    font-size: var(--text-small);
+    font-weight: 500;
+    margin-block-end: var(--space-3);
+  }
+
+  .comp__plot {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .comp__axes line {
+    stroke: var(--border-ui);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .comp__curve {
+    fill: none;
+    stroke: var(--text-primary);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .comp__band {
+    fill: var(--accent);
+    opacity: 0.16;
+  }
+
+  .comp__legend {
+    margin-block-start: var(--space-3);
+    color: var(--text-muted);
+    line-height: 1.55;
+    max-width: 40ch;
+  }
+
+  .comp__axisLabels {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  @media (width >= 768px) {
+    .comp {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-8);
+    }
+    .comp__axisLabels {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

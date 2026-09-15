@@ -1,0 +1,308 @@
+---
+order: 1
+status: published
+title: FANUC Text-to-Trajectory Writing Robot
+subtitle: Girilen metni FANUC hareket programına dönüştüren Python programım ve bu metni gerçek bir kalemle kâğıda yazan endüstriyel robot.
+summary: Harici kütüphane kullanmadan yazdığım Python programı, girilen metni FANUC robot pozisyonlarına ve hareket komutlarına dönüştürüyor. Robotu çalıştırmadan önce yolu kontrol etmek için SVG önizleme de oluşturuyor. Kalem tutucuya yay ekledikten sonra robot bu metni kâğıda yazdı.
+roleLabel: Bireysel proje
+context: Neksus Endüstriyel Otomasyon, İzmir
+period: Haz - Tem 2026
+stack:
+  - Python
+  - FANUC TP / LS
+  - RoboGuide
+  - SVG
+  - CSV
+evidence:
+  - video
+  - code
+  - output
+role: >-
+  Metni robot hareketine dönüştüren Python programını ben yazdım. Çizgi fontunu,
+  metin yerleşimini, otomatik ölçeklemeyi, robot noktalarını oluşturan kısmı ve
+  üç çıktı biçimini hazırladım. Kalem tutucuyu tasarlayıp yaptım; ilk hali
+  düzgün çizgi çizemeyince yay ekleyerek yeniden tasarladım. Hücreyi RoboGuide’da
+  kurdum, teach pendant’ı kullandım, takım ucunu ve yazma düzlemini kalibre ettim.
+  Gerçek robotta karşılaştığım sorunları da ben giderdim. Staj sorumlumun
+  referans mektubunda da bu çalışmalar yer alıyor.
+limits: >-
+  Herhangi bir performans ölçümü yapmadım. Tekrarlanabilirlik, çizgi kalınlığının
+  ne kadar değiştiği veya çevrim süresi için ölçüm verim yok. Metnin okunaklı
+  çıkıp çıkmadığına baktım ve okunaklıydı. Yayı hesap yaparak değil, farklı
+  yayları deneyerek seçtim. Tekrar yapsam plakaya bir komparatör yerleştirip
+  mekanik esnekliği ölçerdim. Komut verilen Z ile gerçekte ulaşılan Z değerini
+  de kaydederdim. Böylece kalibrasyon hatasını gözle değerlendirmek yerine
+  sayıyla ifade edebilirdim.
+glance:
+  what: Noktaları tek tek öğretmek yerine oluşturduğum hareket programını kullanarak metni kalemle yazan bir endüstriyel robot.
+  built: Tek dosyalık bir Python programı, yaylı kalem tutucu ve bunların birlikte çalışmasını sağlayan kalibrasyon.
+chapters:
+  - { id: 'problem', label: 'Robota yazı yazdırmak' }
+  - { id: 'generate', label: 'Metinden hareket programına' }
+  - { id: 'spring', label: 'Tutucudaki yay' }
+  - { id: 'result', label: 'Yazdı' }
+  - { id: 'limits', label: 'Sınırlar ve kısıtlar' }
+card:
+  alt: Kalem tutucusu takılı FANUC 200iD/7L, yuvarlak bir masaya bantlanmış kâğıda bir satır yazı çizerken.
+  video:
+    mp4: /video/writing-loop.mp4
+    webm: /video/writing-loop.webm
+    poster: /video/writing-poster.jpg
+hero:
+  media: ../../../assets/projects/writing-robot/roboguide-cell.jpg
+  alt: RoboGuide’da robot modelinin önünde, oluşturulan hareket yolunu gösteren dört satır sarı yazı.
+seo:
+  description: Metni FANUC robot pozisyonlarına ve hareket programına dönüştüren Python programım ve bu metni gerçek bir kalemle yazan endüstriyel robot.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import Figure from '../../../components/content/Figure.astro';
+import CodeExcerpt from '../../../components/content/CodeExcerpt.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import PipelineDiagram from '../../../components/diagrams/PipelineDiagram.astro';
+import PenMotionDiagram from '../../../components/diagrams/PenMotionDiagram.astro';
+import ComplianceDiagram from '../../../components/diagrams/ComplianceDiagram.astro';
+import workshop from '../../../assets/projects/writing-robot/workshop-cell.jpg';
+import program from '../../../assets/projects/writing-robot/roboguide-program.jpg';
+import planned from '../../../assets/projects/writing-robot/generated-preview.jpg';
+import written from '../../../assets/projects/writing-robot/written-result.jpg';
+
+<Chapter
+  id="problem"
+  index="01"
+  title="Her noktayı öğretmeden robota yazı yazdırmak"
+  deck="Kısa bir cümle yüzlerce robot pozisyonu demek. Bunları elle kaydetmek istemedim."
+>
+
+Stajımın son iki haftasında atölyede herhangi bir müşteri projesine ayrılmamış
+bir FANUC 200iD/7L vardı. Önceki haftalarda, robotun çuvalları bir yerden alıp
+başka bir yere taşıdığı paletleme hücrelerinde çalışmıştım. Tek tek komutları
+denemek yerine baştan sona çalışan bir sistem kurmak istiyordum. Bunun için
+robota yazı yazdırmaya karar verdim.
+
+Normalde robotu jog modunda her noktaya götürüp pozisyonu kaydetmek gerekiyor.
+Kısa bir cümle bile yüzlerce pozisyon gerektirdiğinden bunu elle yapmak pratik
+değildi. İstediğim, yazdığım metni her seferinde aynı yöntemle kontrolcünün
+çalıştırabileceği bir hareket programına dönüştürmekti.
+
+Yazı yazmak, alıp bırakma işlerine göre hataya daha az tolerans gösteriyor.
+Kalem ucu, kâğıdın her yerinde yazma düzlemine yakın kalmalı. Kâğıda çizgi
+bırakacak kadar basmalı ama hiçbir parçayı eğmemeli. Yüzlerce küçük hareket de
+doğru sırayla gerçekleşmeli. Koordinat sistemindeki bir hata bunların her
+birini etkileyebiliyor.
+
+<SpecList
+  items={[
+    { key: 'Kâğıt', value: '297 × 210 mm yatay A4 kâğıda sığıyor, sığmazsa metin sığana kadar küçülüyor' },
+    { key: 'Karakterler', value: 'A-Z, a-z, 0-9, noktalama ve Türkçe harfler ç ğ ı İ ö ş ü' },
+    { key: 'Güvenlik', value: 'Tanımlı çalışma alanının dışındaki hiçbir koordinat robota ulaşmıyor' },
+    { key: 'İş akışı', value: 'Oluşturulan program, standart FANUC program yükleme sürecine uygun olmalı' },
+    { key: 'Oryantasyon', value: 'Kartezyen CONFIG ve W/P/R değerleri tahminden değil, gerçek robotta doğrulanmış bir noktadan geliyor' },
+  ]}
+/>
+
+<Figure
+  src={workshop}
+  alt="Atölye salonunda iki büyük FANUC paletleme robotu; kolları bir portal ve konveyörün üzerinde kalkık."
+  caption="Stajım sırasındaki atölye ortamından bir kesit. Buradaki robot, yazı projesinde kullanılan FANUC değil; o düzenek başka bir bölümdeydi."
+  wide
+/>
+
+</Chapter>
+
+<Chapter
+  id="generate"
+  index="02"
+  title="Noktaları tek tek öğretmek yerine programı oluşturmak"
+  deck="Girilen metinden bir hareket programı oluşturuluyor. Robotu çalıştırmadan önce izleyeceği yol SVG önizlemede kontrol edilebiliyor."
+>
+
+Programı harici kütüphane kullanmadan, tek bir Python dosyası olarak yazdım.
+Bu bilinçli bir tercihti: atölyedeki dizüstü bilgisayarda ek kurulum
+gerektirmeden çalışması gerekiyordu.
+
+İşin pek beklenmeyen kısmı yazı tipi. Her karakteri, birim kutu içinde
+birbirine bağlı çizgi parçalarıyla tanımladım. Kalem bir seferde tek çizgi
+çizdiği için harflerin içini doldurmak gerekmiyor. Bu kutuda `y = 0` büyük
+harflerin üst sınırı, `y = 1` taban çizgisi. Aşağı uzanan harf parçaları
+`1.30` değerine kadar iniyor. Böylece her karakter doğrudan kalem kâğıttayken
+izlenecek çizgilere dönüşüyor.
+
+Türkçe karakterler program çalışırken oluşturuluyor. `ç` için `c` harfine
+çengel, `ğ` için `g` harfine yay biçimli işaret, `ü` için `u` harfine iki nokta
+ekleniyor. Yeni bir dil eklerken alfabeyi baştan çizmek yerine bu işaretleri
+çizen fonksiyonlar ekliyorum.
+
+<PipelineDiagram />
+
+Bu akıştaki üç karar diğerlerinden daha önemliydi.
+
+İlki, metni kâğıda otomatik sığdırmak. Metin taşarsa program, kâğıda sığan en
+büyük harf yüksekliğini buluyor. Harf ve kelime aralıklarını da aynı oranda
+küçülterek yazının oranlarını koruyor. Metni asla büyütmüyor. Harf yüksekliğinin
+3 mm altına düşmesi gerekiyorsa işlem duruyor, çünkü kalem o kadar küçük
+harfleri yeterince ayrıntılı çizemiyor.
+
+<CodeExcerpt
+  file="fanuc_writer_ls.py · fit_text_to_paper()"
+  caption="Elli adımlık ikili aramanın ardından, kâğıda sığan son yüksekliğin biraz altındaki değer seçiliyor."
+>
+{`low = minimum_height_mm
+high = original_height
+
+`}<span class="cm">{`# Binary search for the largest height that fits.`}</span>{`
+for _ in range(50):
+    middle = (low + high) / 2.0
+    candidate = scaled_config(middle)
+    if fits_paper(layout_text(candidate), candidate):
+        low = middle
+    else:
+        high = middle
+
+return scaled_config(low * 0.999)`}
+</CodeExcerpt>
+
+İkinci karar, her noktada hangi sonlandırma tipinin kullanılacağıydı.
+Çizginin düzgün çıkması buna bağlı.
+
+<PenMotionDiagram />
+
+Kalemin indiği ve kalktığı noktalarda `FINE` kullanılıyor. Kalem ucunun
+tanımlanan konuma tam olarak ulaşması gereken yerler bunlar. Aradaki köşe
+noktalarında ise `CNT10` var; kontrolcü her köşede durmak yerine geçişleri
+yumuşatıyor. Her noktada `FINE` kullanıldığında robot harfleri duraklayarak
+çiziyor. Her noktada `CNT10` kullanıldığında ise çizgilerin başlangıcı
+yuvarlanıyor.
+
+<CodeExcerpt file="fanuc_writer_ls.py · export_fanuc_ls()">
+{`for point in points:
+    termination = (
+        `}<span class="hl">{`"FINE"`}</span>{`
+        if point.motion_type in {"PEN_DOWN", "PEN_UP"}
+        else `}<span class="hl">{`"CNT10"`}</span>{`
+    )
+    motion_instructions.append(
+        f"L P[{point.number}] {point.speed_mm_sec}mm/sec "
+        f"{termination} ;"
+    )`}
+</CodeExcerpt>
+
+<Figure
+  src={program}
+  alt="Bir dizüstü ekranında RoboGuide 3B görünümü ve yanında teach pendant program listesi; satırlarda Stroke 18 vertex 3, P[111] 20mm/sec CNT10, Stroke 18 pen up ve P[119] 100mm/sec FINE yazıyor."
+  caption="Oluşturulan programın teach pendant üzerindeki görünümü. Çizgi açıklamalarını ve noktasına göre kullanılan CNT10 ile FINE komutlarını Python programı yazıyor."
+  wide
+/>
+
+Üçüncü karar, hata durumunda ne yapılacağıydı. Dosyalar oluşturulmadan önce
+her noktanın tanımlı sınırlar içinde olup olmadığı kontrol ediliyor. Dışarıda
+kalan bir koordinat sessizce sınıra çekilmiyor; program hata veriyor. Program
+oluşturulamaması bir dakika kaybettirir. Noktayı haber vermeden kâğıdın
+kenarına taşımasıysa robotun çarptığı şeye zarar verebilir.
+
+<CodeExcerpt file="fanuc_writer_ls.py · validate_xyz()">
+{`if not all(math.isfinite(value) for value in (x, y, z)):
+    raise ValueError(f"Non-finite coordinate: {(x, y, z)}")
+if not (config.min_x_mm <= x <= config.max_x_mm):
+    raise ValueError(f"X out of bounds: {x:.3f} mm")`}
+</CodeExcerpt>
+
+Aynı nedenle CONFIG ve takım yönelimini parametre olarak bıraktım, kodun
+açıklamasına da uyarı ekledim. Sabit değerler kullanmadım. Bu değerler,
+kullanılacak robotta doğrulanmış bir noktadan alınmalı. Doğru gibi görünen bir
+varsayılan değer vermek, hiç vermemekten daha riskli olurdu.
+
+</Chapter>
+
+<Chapter
+  id="spring"
+  index="03"
+  title="Tutucudaki yay"
+  deck="Hareket yolu doğruydu ama çizgi yine de soluk çıkıyordu. Sorunu mekanik bir değişiklikle çözdüm."
+>
+
+Yazılımda en çok koordinat sistemiyle uğraştım; beklediğimden uzun sürdü.
+Ölçek, orijin, yazma düzlemi ve çizgilerin sırası birbiriyle tutarlı olmalı.
+Biri bile yanlışsa harfler yamuluyor, ters dönüyor veya yanlış sırayla çiziliyor.
+Her şey doğru çalıştığında ise bu sorunların hiçbiri sonuçtan anlaşılmıyor.
+
+Sonra robotta çalıştırdım. Yol doğruydu, RoboGuide’da da doğruydu. Kâğıtta ise
+çizgi yer yer soluktu, yer yer hiç yoktu.
+
+İlk aklıma gelen, kalemi biraz daha bastırmak için yazma düzlemini bir
+milimetre aşağı alıp tekrar denemekti. Ama bu yanlış bir yaklaşım. Rijit bir yüzeye
+bastırması söylenen bir robot, bir yer esneyene ya da kırılana kadar ilerlemeye
+devam eder. Tutucunun eğilmesi ve kalemin zarar görmesi riskini almış olurdum; her küçük kalibrasyon hatası azalmak yerine daha
+tehlikeli hale gelirdi. Bu hatalar küçük ve kaçınılmaz. Tool center point bir
+miktar kaymış oluyor, kâğıt tam düz değil, masa tam terazide değil. Tek bir TCP
+hatası sayfadaki her karakteri etkiliyor.
+
+Ben de tutucuyu değiştirdim ve içine bir yay koydum.
+
+<ComplianceDiagram />
+
+Çözüm buydu. Kalem artık tutucunun içinde hareket edebiliyor. Bu sayede temas
+kuvvetini büyük ölçüde yay belirliyor; kuvvet, kâğıdın konumunu robota ne kadar
+hassas tanıttığıma eskisi kadar bağlı değil. Önceden çizginin kaybolmasına
+veya aşırı basınca yol açan küçük yükseklik farklarını artık yay karşılıyor.
+
+Bu basit değişiklik bana önemli bir şey öğretti. Temas sorununu yazılımla
+çözmeye çalışıyordum ama daha iyi çözüm mekanikteydi.
+
+</Chapter>
+
+<Chapter
+  id="result"
+  index="04"
+  title="Yazdı"
+  deck="Aynı metnin programdaki SVG önizlemesi ve robotun kâğıda yazdığı hali."
+>
+
+Program çalışıyor. `Hazar Ekin Uçan` metni için 19 çizgi ve 127 robot noktası
+oluşturuyor. Yazının sayfaya sığması için istenen 30 mm harf yüksekliğini
+23.31 mm değerine düşürüyor. Bu sayıları programı çalıştırarak elde ettim.
+
+<div class="pair">
+  <Figure
+    src={planned}
+    alt="Programın oluşturduğu SVG önizleme: tek çizgili yazıyla dört satır; Hazar Ekin Uçan, Constructor University, Robotics and Intellegent Systems, Precision in Automation."
+    caption="Planlanan hareket yolu. Programın hareket komutlarıyla birlikte oluşturduğu SVG önizleme. Robotu çalıştırmadan önce bunu kontrol ediyorum."
+  />
+  <Figure
+    src={written}
+    alt="Aynı dört satır, robot tarafından kalemle kâğıda yazılmış; çizgilerin düz parçalardan oluştuğu görülüyor."
+    caption="Robotun yazdığı metin. Programa girdiğim metindeki yazım hatası da kâğıda aynen geçmiş."
+  />
+</div>
+
+Aşağıdaki videoda robot yazarken görünüyor. Videoyu sessiz paylaşıyorum;
+orijinal kayıtta yalnızca atölye gürültüsü var ve anlatıma bir katkısı yok.
+
+<figure class="figure video-figure bleed">
+  <div class="video-figure__frame">
+    <video
+      controls
+      muted
+      playsinline
+      preload="metadata"
+      poster="/video/writing-poster.jpg"
+      width="464"
+      height="832"
+    >
+      <source src="/video/writing-demo.mp4" type="video/mp4" />
+      Tarayıcınız bu videoyu oynatamıyor.
+    </video>
+  </div>
+  <figcaption>
+    FANUC 200iD/7L ikinci satırı çizerken; kalem temasta, kâğıt masaya
+    bantlanmış. Stajın sonunda telefonla çekildi. Ses yok.
+  </figcaption>
+</figure>
+
+Önceki haftalarda öğrendiğim neredeyse her şeyi bu projede kullandım. Teach
+pendant, tool ve user frame tanımları, register ve pozisyon register’ları,
+dijital I/O, hareket tipleri ve hızlar, mastering, kalibrasyon ve alarm giderme
+bu işin parçaları oldu. Sonunda, çalışıp çalışmadığını doğrudan görebildiğim
+bir sistem ortaya çıktı.
+
+</Chapter>

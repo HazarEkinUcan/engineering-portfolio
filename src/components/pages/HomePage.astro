@@ -1,0 +1,383 @@
+---
+/**
+ * The homepage, in one language.
+ *
+ * It is a component rather than a page so that `/`, `/tr` and `/de` are three
+ * thin routes over one implementation. Nothing about the layout, the order of
+ * the sections or the hero differs between languages: only the words, which
+ * arrive through `t(locale)`, and the links, which go through `href()`.
+ */
+import HeroScene from '../hero/HeroScene.astro';
+import ProjectCard from '../project/ProjectCard.astro';
+import OngoingCard from '../project/OngoingCard.astro';
+import ContactBand from '../layout/ContactBand.astro';
+import Timeline from '../content/Timeline.astro';
+import CalibrationMini from '../diagrams/CalibrationMini.astro';
+import Base from '../../layouts/Base.astro';
+import { site } from '../../data/site';
+import { timeline } from '../../data/timeline';
+import { skillGroups } from '../../data/skills';
+import type { Locale } from '../../i18n/locales';
+import { href } from '../../i18n/paths';
+import { t } from '../../i18n/ui';
+import { getOngoing, getProjects } from '../../i18n/collections';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const ui = t(locale);
+
+const projects = await getProjects(locale);
+
+// Ongoing builds are a separate collection, so nothing here can dilute what the
+// projects schema guarantees about completed work.
+const ongoing = await getOngoing(locale);
+
+const evidenceLabels = ui.evidence;
+
+/* The three "how I work" items: words from the dictionary, anchors from here.
+   A translation supplies the sentences and cannot move a link. */
+const principleHrefs = [
+  '/projects/writing-robot#spring',
+  '/projects/writing-robot#spring',
+  '/projects/prosodic-vr#refuse',
+];
+const principles = ui.home.principles.map((item, i) => ({
+  ...item,
+  href: href(principleHrefs[i] ?? '/', locale),
+}));
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.name,
+  url: new URL(href('/', locale), Astro.site ?? 'https://hazarekinucan.com').href,
+  alumniOf: [
+    { '@type': 'CollegeOrUniversity', name: 'Constructor University Bremen' },
+    { '@type': 'CollegeOrUniversity', name: 'Yaşar University' },
+  ],
+  knowsAbout: [
+    'Industrial robotics',
+    'FANUC robot programming',
+    'Robot calibration',
+    'Speech signal processing',
+    'Python',
+  ],
+  sameAs: site.links.map((link) => link.href),
+};
+---
+
+<Base locale={locale} title={ui.site.title} description={ui.site.description} jsonLd={jsonLd}>
+  <section class="hero">
+    <div class="wrap hero__inner">
+      <div class="hero__text">
+        <h1 class="hero__name">{site.name}</h1>
+        <p class="hero__positioning lede">{ui.site.positioning}</p>
+        <p class="hero__status mono">{ui.site.status}</p>
+        {site.availability && <p class="hero__availability mono">{site.availability}</p>}
+        <p class="hero__actions">
+          <a class="btn btn--primary" href="#work">
+            {ui.home.seeTheWork} <span class="arrow" aria-hidden="true">→</span>
+          </a>
+          <a class="btn btn--secondary" href={href('/about', locale)}>{ui.home.aboutMe}</a>
+        </p>
+      </div>
+
+      <div class="hero__mark">
+        <HeroScene />
+        <p class="hero__markNote mono">{ui.home.markNote}</p>
+        <p class="hero__markLink">
+          <a class="draw-link" href={href('/projects/writing-robot', locale)}>
+            {ui.home.markLink} <span class="arrow" aria-hidden="true">&#8594;</span>
+          </a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="work" aria-labelledby="work-heading">
+    <div class="wrap wrap--media">
+      <h2 class="section-label" id="work-heading"><span>{ui.home.sectionWork}</span></h2>
+
+      <div class="work">
+        {
+          projects.map((row, index) => {
+            const d = row.entry.data;
+            const hasMedia = Boolean(d.card?.media || d.card?.video);
+            const shared = {
+              index: String(index + 1).padStart(2, '0'),
+              href: href(`/projects/${row.slug}`, locale),
+              title: d.title,
+              context: `${d.roleLabel} · ${d.context} · ${d.period}`,
+              summary: d.summary ?? '',
+              stack: d.stack ?? [],
+              evidence: (d.evidence ?? []).map((e) => evidenceLabels[e] ?? e),
+              media: d.card?.media,
+              alt: d.card?.alt,
+              credit: d.card?.credit,
+              creditHref: d.card?.creditHref,
+              video: d.card?.video,
+              flip: index % 2 === 1,
+              eager: index === 0,
+              cta: ui.card.readCaseStudy,
+            };
+
+            return (
+              <div class="reveal">
+                {hasMedia ? (
+                  <ProjectCard {...shared} />
+                ) : (
+                  <ProjectCard {...shared}>
+                    <div slot="media" class="work__diagram">
+                      <CalibrationMini />
+                    </div>
+                  </ProjectCard>
+                )}
+              </div>
+            );
+          })
+        }
+      </div>
+    </div>
+  </section>
+
+  {
+    ongoing.length > 0 && (
+      <section class="section" id="ongoing" aria-labelledby="ongoing-heading">
+        <div class="wrap wrap--media">
+          <h2 class="section-label" id="ongoing-heading"><span>{ui.home.sectionOngoing}</span></h2>
+          <p class="ongoing-deck deck">{ui.home.ongoingDeck}</p>
+
+          <div class="work">
+            {ongoing.map((row) => (
+              <div class="reveal">
+                <OngoingCard
+                  href={href(`/projects/${row.slug}`, locale)}
+                  title={row.entry.data.title}
+                  context={[row.entry.data.context, row.entry.data.started]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  summary={row.entry.data.summary}
+                  targetLine={row.entry.data.targetLine}
+                  statusLine={row.entry.data.statusLine}
+                  updated={row.entry.data.updated}
+                  media={row.entry.data.media?.src}
+                  alt={row.entry.data.media?.alt}
+                  caption={row.entry.data.media?.caption}
+                  contain={row.entry.data.media?.contain ?? true}
+                  statusChip={ui.ongoing.statusChip}
+                  updatedLabel={ui.ongoing.lastUpdated}
+                  cta={ui.ongoing.followTheBuild}
+                  pendingLabel={ui.ongoing.conceptToFollow}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="section" aria-labelledby="how-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="how-heading"><span>{ui.home.sectionHow}</span></h2>
+      <ul class="principles" role="list">
+        {
+          principles.map((item) => (
+            <li class="principle reveal">
+              <h3 class="principle__title">{item.title}</h3>
+              <p class="principle__body">{item.body}</p>
+              <p class="principle__link">
+                <a class="draw-link" href={item.href}>
+                  {item.label} <span aria-hidden="true">→</span>
+                </a>
+              </p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="cap-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="cap-heading"><span>{ui.home.sectionCapabilities}</span></h2>
+      <div class="caps">
+        {
+          skillGroups(locale).slice(0, 3).map((group) => (
+            <div class="cap reveal">
+              <h3 class="cap__title">{group.title}</h3>
+              <ul role="list">
+                {group.items.slice(0, 5).map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+      <p class="caps__more">
+        <a class="draw-link" href={href('/about#capabilities', locale)}>
+          {ui.home.fullCapabilities} <span aria-hidden="true">→</span>
+        </a>
+      </p>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="bg-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="bg-heading"><span>{ui.home.sectionBackground}</span></h2>
+      <Timeline entries={timeline(locale)} compact />
+      <p class="caps__more">
+        <a class="draw-link" href={href('/about', locale)}>
+          {ui.home.fullBackground} <span aria-hidden="true">→</span>
+        </a>
+      </p>
+    </div>
+  </section>
+
+  <ContactBand locale={locale} />
+</Base>
+
+<style>
+  .hero {
+    padding-block: var(--space-9) var(--space-10);
+  }
+
+  .hero__inner {
+    display: grid;
+    gap: var(--space-8);
+    align-items: center;
+  }
+
+  .hero__name {
+    font-size: var(--text-display);
+    line-height: var(--lh-display);
+    letter-spacing: var(--track-display);
+  }
+
+  .hero__positioning {
+    margin-block-start: var(--space-5);
+    max-width: 34ch;
+    color: var(--text-primary);
+  }
+
+  .hero__status,
+  .hero__availability {
+    margin-block-start: var(--space-5);
+    color: var(--text-secondary);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-block-start: var(--space-7);
+  }
+
+  .hero__mark {
+    max-height: 62vh;
+  }
+
+  .hero__markNote {
+    margin-block-start: var(--space-5);
+    color: var(--text-muted);
+    line-height: 1.55;
+    max-width: 46ch;
+  }
+
+  .hero__markLink {
+    margin-block-start: var(--space-3);
+    font-size: var(--text-small);
+  }
+
+  @media (width >= 1024px) {
+    .hero__inner {
+      grid-template-columns: 42fr 58fr;
+      gap: var(--space-9);
+    }
+  }
+
+  .work {
+    display: grid;
+    gap: var(--space-7);
+  }
+
+  /* Says outright what the section is, so an ongoing card is never read as a
+     completed one by a visitor who skipped the heading. */
+  .ongoing-deck {
+    margin-block: var(--space-5) var(--space-7);
+    max-width: 58ch;
+    color: var(--text-secondary);
+  }
+
+  .work__diagram {
+    aspect-ratio: 16 / 10;
+    display: grid;
+    align-content: center;
+  }
+
+  .principles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-7);
+  }
+
+  .principle {
+    padding-block-start: var(--space-5);
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .principle__title {
+    font-size: var(--text-h3);
+    max-width: 18ch;
+  }
+
+  .principle__body {
+    margin-block-start: var(--space-3);
+    color: var(--text-secondary);
+    max-width: 44ch;
+  }
+
+  .principle__link {
+    margin-block-start: var(--space-4);
+    font-size: var(--text-small);
+  }
+
+  .caps {
+    display: grid;
+    gap: var(--space-7);
+  }
+
+  .cap__title {
+    font-size: var(--text-h3);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--border-hairline);
+  }
+
+  .cap ul {
+    list-style: none;
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+    font-size: var(--text-small);
+    color: var(--text-secondary);
+  }
+
+  .caps__more {
+    margin-block-start: var(--space-7);
+    font-size: var(--text-small);
+  }
+
+  @media (width >= 768px) {
+    .principles,
+    .caps {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-6);
+    }
+  }
+</style>

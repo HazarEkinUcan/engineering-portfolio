@@ -1,0 +1,177 @@
+---
+/**
+ * The About page, in one language. One implementation behind `/about`,
+ * `/tr/about` and `/de/about`.
+ */
+import ContactBand from '../layout/ContactBand.astro';
+import Timeline from '../content/Timeline.astro';
+import Base from '../../layouts/Base.astro';
+import { site } from '../../data/site';
+import { timeline, languages } from '../../data/timeline';
+import { skillGroups, honestLabels } from '../../data/skills';
+import type { Locale } from '../../i18n/locales';
+import { href } from '../../i18n/paths';
+import { t } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const ui = t(locale);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.name,
+  url: new URL(href('/about', locale), Astro.site ?? 'https://hazarekinucan.com').href,
+  alumniOf: [
+    { '@type': 'CollegeOrUniversity', name: 'Constructor University Bremen' },
+    { '@type': 'CollegeOrUniversity', name: 'Yaşar University' },
+  ],
+  sameAs: site.links.map((link) => link.href),
+};
+---
+
+<Base
+  locale={locale}
+  title={ui.about.metaTitle}
+  description={ui.about.metaDescription}
+  jsonLd={jsonLd}
+>
+  <section class="section intro">
+    <div class="wrap">
+      <h1 class="intro__title">{ui.about.heading}</h1>
+      <div class="intro__body prose stack">
+        <p class="lede">{ui.about.lede}</p>
+        {ui.about.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+        <p class="mono intro__langs">{languages(locale)}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="capabilities" aria-labelledby="cap-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="cap-heading"><span>{ui.about.sectionCapabilities}</span></h2>
+
+      <div class="groups">
+        {
+          skillGroups(locale).map((group) => (
+            <section class="group reveal">
+              <h3 class="group__title">{group.title}</h3>
+              {group.note && <p class="group__note mono">{group.note}</p>}
+              <ul role="list">
+                {group.items.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              {group.evidence && (
+                <p class="group__evidence">
+                  <a class="draw-link" href={href(group.evidence.href, locale)}>
+                    {group.evidence.label} <span aria-hidden="true">→</span>
+                  </a>
+                </p>
+              )}
+            </section>
+          ))
+        }
+      </div>
+
+      <div class="honest">
+        {
+          honestLabels(locale).map((item) => (
+            <div class="honest__item reveal">
+              <h3 class="honest__title label">{item.title}</h3>
+              <p>{item.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="bg-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="bg-heading"><span>{ui.about.sectionBackground}</span></h2>
+      <Timeline entries={timeline(locale)} />
+    </div>
+  </section>
+
+  <ContactBand locale={locale} />
+</Base>
+
+<style>
+  .intro {
+    padding-block-start: var(--space-9);
+  }
+
+  .intro__title {
+    font-size: var(--text-h1);
+  }
+
+  .intro__body {
+    margin-block-start: var(--space-6);
+  }
+
+  .intro__langs {
+    color: var(--text-secondary);
+    padding-block-start: var(--space-5);
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .groups {
+    display: grid;
+    gap: var(--space-8);
+  }
+
+  .group__title {
+    font-size: var(--text-h3);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--border-hairline);
+  }
+
+  .group__note {
+    margin-block-start: var(--space-3);
+    color: var(--text-muted);
+  }
+
+  .group ul {
+    list-style: none;
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+    font-size: var(--text-small);
+    color: var(--text-secondary);
+  }
+
+  .group__evidence {
+    margin-block-start: var(--space-4);
+    font-size: var(--text-small);
+  }
+
+  .honest {
+    display: grid;
+    gap: var(--space-6);
+    margin-block-start: var(--space-9);
+    padding-block-start: var(--space-7);
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .honest__item p {
+    margin-block-start: var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--text-small);
+    max-width: 46ch;
+  }
+
+  @media (width >= 768px) {
+    .groups {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-8) var(--space-7);
+    }
+    .honest {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-6);
+    }
+  }
+</style>

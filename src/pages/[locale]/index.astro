@@ -1,0 +1,17 @@
+---
+/*
+ * The Turkish and German homepages. English is not emitted here: it lives at
+ * `/` with no prefix, and `getStaticPaths` returns only the prefixed locales,
+ * so `/en` never exists to be found or linked.
+ */
+import HomePage from '../../components/pages/HomePage.astro';
+import { PREFIXED_LOCALES, type Locale } from '../../i18n/locales';
+
+export function getStaticPaths() {
+  return PREFIXED_LOCALES.map((locale) => ({ params: { locale }, props: { locale } }));
+}
+
+const { locale } = Astro.props as { locale: Locale };
+---
+
+<HomePage locale={locale} />

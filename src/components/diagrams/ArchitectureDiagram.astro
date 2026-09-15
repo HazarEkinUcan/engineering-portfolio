@@ -1,0 +1,163 @@
+---
+import DiagramFrame from './DiagramFrame.astro';
+
+/**
+ * Project 2, diagram 2 — the two layers and the bridge, with the Python
+ * engine's internal stages shown inside it so no separate pipeline drawing
+ * is needed. Nothing here describes the Unity implementation: only the
+ * interface it drives, which the code shows.
+ */
+import { diagramsFor } from '../../i18n/diagrams';
+
+const t = diagramsFor(Astro.url).architecture;
+---
+
+<DiagramFrame
+  label={t.label}
+  caption={t.caption}
+>
+  <div class="arch">
+    <div class="arch__layer">
+      <p class="label">{t.vrLayer}</p>
+      <div class="arch__boxes">
+        <div class="arch__box">
+          <span class="arch__name">Quest 3</span>
+          <span class="mono arch__note">{t.headsetNote}</span>
+        </div>
+        <span class="arch__arrow" aria-hidden="true"></span>
+        <div class="arch__box">
+          <span class="arch__name">{t.sceneName}</span>
+          <span class="mono arch__note">{t.sceneNote}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch__bridge">
+      <span class="arch__arrow arch__arrow--down" aria-hidden="true"></span>
+      <div class="arch__box arch__box--bridge">
+        <span class="arch__name">FastAPI</span>
+        <span class="mono arch__note">/health · /start · /stop</span>
+      </div>
+      <span class="arch__arrow arch__arrow--down" aria-hidden="true"></span>
+    </div>
+
+    <div class="arch__layer">
+      <p class="label">{t.engineLayer}</p>
+      <ol class="arch__engine" role="list">
+        {
+          t.stages.map((stage, i) => (
+            <li>
+              <span class="mono arch__step">{String(i + 1).padStart(2, '0')}</span>
+              <span>{stage}</span>
+            </li>
+          ))
+        }
+      </ol>
+      <p class="mono arch__foot">{t.engineFoot}</p>
+    </div>
+  </div>
+</DiagramFrame>
+
+<style>
+  .arch {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .arch__boxes {
+    display: grid;
+    gap: var(--space-3);
+    align-items: center;
+    margin-block-start: var(--space-3);
+  }
+
+  .arch__box {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-4);
+    border: 1px solid var(--border-ui);
+    border-radius: var(--radius-sm);
+  }
+
+  .arch__box--bridge {
+    border-color: var(--accent);
+  }
+
+  .arch__name {
+    font-size: var(--text-small);
+    font-weight: 500;
+  }
+
+  .arch__note {
+    color: var(--text-muted);
+  }
+
+  .arch__arrow {
+    justify-self: center;
+    width: 8px;
+    height: 8px;
+    border-block-end: 1px solid var(--border-ui);
+    border-inline-end: 1px solid var(--border-ui);
+    transform: rotate(45deg);
+  }
+
+  .arch__bridge {
+    display: grid;
+    gap: var(--space-3);
+    justify-items: stretch;
+  }
+
+  .arch__engine {
+    list-style: none;
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--border-ui);
+    border-radius: var(--radius-sm);
+  }
+
+  .arch__engine li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-4);
+    align-items: baseline;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-small);
+    border-block-start: 1px solid var(--border-hairline);
+  }
+
+  .arch__engine li:first-child {
+    border-block-start: 0;
+  }
+
+  .arch__step {
+    color: var(--text-muted);
+  }
+
+  .arch__foot {
+    margin-block-start: var(--space-3);
+    color: var(--text-muted);
+  }
+
+  @media (width >= 768px) {
+    .arch__boxes {
+      grid-template-columns: 1fr auto 1fr;
+    }
+    .arch__arrow {
+      transform: rotate(-45deg);
+    }
+    .arch__arrow--down {
+      transform: rotate(45deg);
+    }
+    .arch__engine {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .arch__engine li:nth-child(-n + 3) {
+      border-block-start: 0;
+    }
+    .arch__engine li:not(:nth-child(3n)) {
+      border-inline-end: 1px solid var(--border-hairline);
+    }
+  }
+</style>

@@ -1,0 +1,35 @@
+---
+/*
+ * The Turkish and German case studies. Identical to the English route above it
+ * in every respect but the params: one extra segment, and the same slug.
+ */
+import { render } from 'astro:content';
+import Project from '../../../layouts/Project.astro';
+import Ongoing from '../../../layouts/Ongoing.astro';
+import { PREFIXED_LOCALES } from '../../../i18n/locales';
+import { projectRoutes, warnOnWorkingTitle, type ProjectRouteProps } from '../../../i18n/routes';
+
+export async function getStaticPaths() {
+  const perLocale = await Promise.all(PREFIXED_LOCALES.map((locale) => projectRoutes(locale)));
+  return perLocale.flat().map((route) => ({
+    params: { locale: route.locale, slug: route.slug },
+    props: route.props,
+  }));
+}
+
+const props = Astro.props as ProjectRouteProps;
+const { Content } = await render(props.entry);
+warnOnWorkingTitle(props);
+---
+
+{
+  props.kind === 'ongoing' ? (
+    <Ongoing locale={props.locale} slug={props.slug} project={props.entry}>
+      <Content />
+    </Ongoing>
+  ) : (
+    <Project locale={props.locale} slug={props.slug} project={props.entry} next={props.next}>
+      <Content />
+    </Project>
+  )
+}

@@ -1,0 +1,82 @@
+---
+import { site, nav } from '../../data/site';
+import type { Locale } from '../../i18n/locales';
+import { href } from '../../i18n/paths';
+import { t } from '../../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const ui = t(locale);
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <a class="footer__mark mono" href={href('/', locale)}>{site.shortName}</a>
+
+    <nav aria-label={ui.nav.footerLabel}>
+      <ul role="list">
+        {
+          nav.map((item) => (
+            <li>
+              <a class="draw-link" href={href(item.href, locale)}>{ui.nav[item.key]}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <p class="footer__colophon mono">
+      {ui.footer.colophon}<br />
+      © {year} {site.name} · {ui.footer.lastUpdated}{' '}
+      <time datetime={site.lastUpdated}>{site.lastUpdated}</time>
+    </p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-block-start: 1px solid var(--border-hairline);
+    padding-block: var(--space-8);
+    color: var(--text-secondary);
+  }
+
+  .footer__inner {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .footer nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-5);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--text-small);
+  }
+
+  .footer__mark {
+    text-decoration: none;
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+  }
+
+  .footer__colophon {
+    line-height: 1.7;
+  }
+
+  @media (width >= 768px) {
+    .footer__inner {
+      grid-template-columns: 1fr auto;
+      align-items: start;
+    }
+    .footer__colophon {
+      grid-column: 1 / -1;
+      padding-block-start: var(--space-5);
+      border-block-start: 1px solid var(--border-hairline);
+    }
+  }
+</style>

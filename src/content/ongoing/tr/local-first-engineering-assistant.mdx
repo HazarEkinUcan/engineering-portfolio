@@ -1,0 +1,260 @@
+---
+order: 2
+status: ongoing
+title: Local-First Engineering Assistant
+subtitle: Kendi bilgisayarımda çalışmasını planladığım bir asistan. Her şeyi kendi başına bilmek yerine, gerektiğinde uygun aracı kullanacak küçük bir yerel model.
+summary: Mühendislik ve günlük bilgisayar işleri için yerel öncelikli bir AI asistanı. Küçük bir yerel modeli Python araçları, dosyalarda bilgi arama, web araştırması ve izinli bilgisayar erişimiyle desteklemeyi planlıyorum. Daha güçlü bulut modelleri, yerel sistem gerçekten yetersiz kaldığında devreye girecek.
+updated: Eylül 2026
+statusLine: Mimari araştırması ve planlama · yerel model, araç sistemi ve donanım seçenekleri değerlendiriliyor
+context: Kişisel proje
+started: Eyl 2026
+focus: Ajan mimarisi, araç tasarımı, izinler
+targetLine: Yerel model · Araç kullanımı · Gerektiğinde kontrollü bulut desteği
+targets:
+  - key: Yerel öncelikli
+    value: Rutin işlerin çoğu, dışarıya veri göndermeden önce kendi bilgisayarımda denenmeli
+  - key: Araç kullanımı
+    value: Hesaplama, bilgi bulma ve işlem yapma için ayrı araçlar; böylece modelin her şeyi bilmesi gerekmeyecek
+  - key: Yerel bağlam
+    value: Tüm dosya sistemini prompta eklemek yerine seçtiğim mühendislik dosyalarından ve proje belgelerinden ilgili bilgiyi bulup kullanmak
+  - key: İzinli erişim
+    value: Okuma, yazma, çalıştırma, ağ ve harici model ayrı izinler olarak ele alınacak
+  - key: Gerektiğinde dış destek
+    value: Daha büyük uzak modellere yalnızca yerel deneme gerçekten yetersiz kaldığında danışılacak
+  - key: Performans ölçümü
+    value: Sistem kurulduktan sonra gecikme, yapabildiği işler ve kaynak kullanımı benchmark ile değerlendirilecek
+targetsNote: >-
+  Bunlar sistemin şu anda yaptığı şeyler değil, tasarımda ulaşmak istediğim
+  hedefler. Henüz uygulanmış ya da ölçülmüş bir şey yok.
+currentStatus:
+  - 'Mimariyi araştırıp planlıyorum. Henüz hiçbir bileşeni geliştirmedim.'
+  - 'Araç mimarisini belirliyorum: hangi araçların olacağını, modelin bunları nasıl çağıracağını ve her birinin nelere erişebileceğini planlıyorum.'
+  - 'Yerel model ve runtime seçenekleri araştırılıyor. Herhangi bir model, kuantizasyon, bağlam uzunluğu veya runtime seçilmedi.'
+  - 'Ayrı bir edge donanımı düşünülüyor ama satın alınmadı. NVIDIA Jetson Orin Nano olası platformlardan biri; sistem pekâlâ hâlihazırda sahip olduğum bilgisayarda da çalışabilir.'
+  - 'Geliştirme ve benchmark aşamalarına henüz geçmedim. Gecikme, yapabildiği işler veya güç tüketimi için henüz ölçüm sonucu yok.'
+statusNote: >-
+  Bu sayfa çalışma ilerledikçe güncellenecek. Gecikme, yetenek ve güç tüketimi
+  rakamları, ölçülebilecek çalışan bir sistem olduğunda eklenecek.
+chapters:
+  - { id: 'why', label: 'Neden yapıyorum' }
+  - { id: 'local-first', label: 'Önce yerel' }
+  - { id: 'tools', label: 'Model boyutu yerine araçlar' }
+  - { id: 'context', label: 'Yerel bağlam' }
+  - { id: 'permissions', label: 'İzinli bilgisayar erişimi' }
+  - { id: 'escalation', label: 'Dış model desteği' }
+  - { id: 'questions', label: 'Mühendislik soruları' }
+  - { id: 'status', label: 'Güncel durum' }
+media:
+  src: ../../../assets/projects/local-first-assistant/assistant-concept.png
+  alt: Saydam bir zemin üzerinde katmanlı filamentlerden, bağlı düğümlerden ve dallanan yaylardan oluşan bilgi işlem yapısını çağrıştıran soyut, açık mavi bir kürenin konsept görseli.
+  caption: 'Konsept görseli: arayüz, donanım ve sistem mimarisi geliştirme sırasında değişebilir. Bu, çalışan bir yazılımın ekran görüntüsü değil.'
+  contain: true
+seo:
+  description: Devam eden asistan projem. Küçük bir yerel modeli araçlarla, belgelerden bilgi bulmayla ve izinlere bağlı bilgisayar erişimiyle desteklemeyi planlıyorum.
+---
+
+import Chapter from '../../../components/content/Chapter.astro';
+import SpecList from '../../../components/content/SpecList.astro';
+import SystemPanel from '../../../components/content/SystemPanel.astro';
+
+<Chapter
+  id="why"
+  index="01"
+  title="Neden yapıyorum"
+  deck="Bu sistemlerin nasıl çalıştığını öğrenmek ve günlük işlerimin ne kadarını kendi bilgisayarımda yapabileceğimi görmek istiyorum."
+>
+
+Yapay zekâ artık mühendislik ve yazılım çalışmalarının bir parçası; benim
+çalışmalarımda da öyle. Yalnızca hazır bulut ürünlerini kullanıp nasıl
+davrandıklarına güvenmek istemiyorum. Böyle bir sistemi kendim kurup kontrol
+edebilecek kadar iyi anlamak istiyorum. Modeli yerelde çalıştırmayı, ajan
+mimarisini, retrieval yöntemlerini, yönlendirmeyi ve izinleri öğrenmek için
+bildiğim en iyi yol, baştan sona çalışan bir asistan geliştirmek. Böylece
+kararları kendim verip sonuçlarıyla da kendim uğraşacağım.
+
+İkinci sebep daha pratik. Şu anda küçük, rutin yapay zekâ destekli işlerin büyük
+bir kısmı uzaktaki bir veri merkezine giden bir isteğe dönüşüyor. Hepsinin buna
+ihtiyacı olduğuna ikna olmuş değilim. Bir modeli yerelde çalıştırmak da bedava
+değil. Elektrik harcıyor ve donanımın üretimi ve kullanımı da çevreyi etkiliyor. Yani bu, yerel çıkarımın
+çevresel açıdan otomatik olarak daha iyi seçim olduğu iddiası değil; böyle bir şey
+söylememi sağlayacak hiçbir ölçüm yapmadım. Cevabını aradığım soru daha somut: günlük yapay zekâ destekli işlerimin ne
+kadarını kendi bilgisayarımda yapabilirim? Bulut modellerini yalnızca ek
+kapasitelerine gerçekten ihtiyaç duyduğum işler için kullanabilir miyim?
+
+</Chapter>
+
+<Chapter
+  id="local-first"
+  index="02"
+  title="Önce yerel"
+  deck="Sıra modelden daha önemli: önce yerel model, sonra araçlar, sonra ilk ikisi yetmediyse uzak bir model."
+>
+
+Sistemin temelini belirli bir bileşen değil, işlemlerin sırası oluşturacak:
+
+<SystemPanel
+  title="Sistemin çalışması gereken sıra"
+  rows={[
+    'Yerel model, gelen isteği değerlendirecek.',
+    'İş için gereken araçları seçecek.',
+    'Bu araçların yardımıyla işi yerelde yapmayı deneyecek.',
+    'Yerel deneme yetersiz kalırsa daha güçlü bir harici modele danışabilecek.',
+    'Gelen yanıtı kullanarak işi yine yerelde tamamlayacak.',
+  ]}
+/>
+
+Küçük bir modelin en büyük bulut modelleriyle aynı kapasiteye ulaşmasını
+beklemiyorum. Hedefim, küçük modelin her iş için uygun kaynaktan yararlanmasını
+sağlayan bir sistem kurmak. Böylece sistemin yapabileceklerini yalnızca
+modelin boyutu belirlemeyecek.
+
+</Chapter>
+
+<Chapter
+  id="tools"
+  index="03"
+  title="Model boyutu yerine araçlar"
+  deck="Hesap makinesi çağırabilen bir modelin aritmetiği kafadan yapabilmesine gerek yok. Bu yaklaşımı mümkün olan her işe uygulamak, projenin temel fikri."
+>
+
+Bu projenin merkezî mühendislik sorusu şu: **iyi araçlar ve iyi sistem tasarımı,
+küçük bir dil modelinin eksiklerini ne kadar telafi edebilir?**
+
+Büyük bir model, daha fazla bilgiye sahip olduğu için yanıt verebilir. İyi
+tasarlanmış bir sistem ise gerekli bilgiyi doğru kaynaktan alabilir.
+Aşağıdakiler eklemeyi planladığım özellikler; henüz hiçbiri çalışır durumda değil:
+
+<SpecList
+  items={[
+    { key: 'Hesaplama', value: 'Bir hesap makinesi aracı; böylece aritmetik tahmin edilmez, hesaplanır' },
+    { key: 'Python', value: 'Veri işleme, analiz ve betik işleri için Python çalıştırma' },
+    { key: 'Kod', value: 'Kodu çalıştırmak ve sonucu tahmin etmek yerine kullanmak' },
+    { key: 'Web araştırması', value: 'Modelin kendi bilgisinde bulunmayan güncel bilgileri arayacak bir web aracı' },
+    { key: 'Belge arama', value: 'Kendi proje belgelerimi indeksleyip içlerinden ilgili bilgileri bulma' },
+    { key: 'Dosyalar', value: 'Yerel dosyaları okumak ve izin verilen yerlerde oluşturmak ve değiştirmek' },
+    { key: 'Masaüstü', value: 'Seçtiğim uygulamaları açık iznimle kullanma' },
+  ]}
+/>
+
+Sistemin bir sayıya ihtiyacı varsa onu hesaplamalı. Güncel bilgiye ihtiyacı
+varsa araştırmalı. Projelerimden birinden bir şeye ihtiyacı varsa o dosyayı getirmeli.
+Daha büyük bir modele danışmak ilk değil, son seçenek olmalı.
+
+</Chapter>
+
+<Chapter
+  id="context"
+  index="04"
+  title="Yerel bağlam"
+  deck="Asistanın, proje dosyalarımı dışarı göndermeden çalışmalarım hakkında bilgi sahibi olmasını istiyorum."
+>
+
+Bir asistanı benim için gerçekten faydalı kılacak şeylerin çoğu zaten
+bilgisayarımda: proje klasörleri, kod, üniversite materyali, notlar, makaleler,
+mühendislik belgeleri. Sistemi yerelde tutarak, bunları her seferinde dışarıya göndermeden
+kullanabilmesini hedefliyorum.
+
+Bütün dosya sistemini modelin bağlamına doldurmak istemiyorum. Bu yöntem işe
+yaramaz, dosyalar çoğaldıkça da sürdürülemez. Bunun yerine yalnızca ihtiyaç
+duyulan bilgileri seçmeyi planlıyorum:
+
+<SystemPanel
+  title="Yerel bağlam modele nasıl ulaşmalı"
+  rows={[
+    'Erişilebilir kılmayı seçtiğim dosyalar üzerinde yerel indeksleme.',
+    'İstekle ilgili bölümlerin veya belgelerin bulunması.',
+    'Yalnızca o materyalin yerel model bağlamına konması.',
+  ]}
+/>
+
+Bunun için yerel arama mı, embedding mi, yoksa başka bir retrieval yöntemi mi
+kullanacağıma henüz karar vermedim. Henüz bir yöntem seçilmedi veya sistem
+kurulmadı.
+
+</Chapter>
+
+<Chapter
+  id="permissions"
+  index="05"
+  title="İzinli bilgisayar erişimi"
+  deck="Modele bilgisayar erişimi vermenin güvenlik riskleri var. Bunları sonradan fark etmek yerine, izinleri baştan tasarlamak gerekiyor."
+>
+
+Asistan ileride dosya okuyabilecek, dosya yazabilecek, kod çalıştırabilecek, ağa
+erişebilecek ve harici servislerle konuşabilecekse, sınırsız sistem erişimi olan
+bir ajan doğru bir çözüm olmaz. Bu projede en çok, asistana ne
+yaptırabileceğimden ziyade erişimini nasıl sınırlayacağım ilgimi çekiyor.
+
+Denemek istediğim yaklaşımda izinleri türlerine göre ayıracağım. Böylece her
+araç yalnızca ihtiyacı olan erişimi isteyecek:
+
+<SpecList
+  items={[
+    { key: 'Okuma', value: 'Dosyaları, belgeleri ve sistem durumunu incelemek' },
+    { key: 'Yazma', value: 'Dosya oluşturmak veya değiştirmek' },
+    { key: 'Çalıştırma', value: 'Python, kabuk komutları veya uygulamalar çalıştırmak' },
+    { key: 'Ağ', value: 'Web’e veya harici servislere erişmek' },
+    { key: 'Harici AI', value: 'Uzak bir modele istek göndermek' },
+  ]}
+/>
+
+Riskli bir işlemi sonradan loglarda görmek istemiyorum. Gerektiğinde işlem
+yapılmadan önce açık onayım istenebilmeli. Harici bir modele
+veri göndermek, kod çalıştırmakla aynı düzeyde, kendi başına bir izin olarak ele
+alınmalı. Makineden dışarıya veri çıkabilmesi açısından bu da aynı ciddiyetle
+ele alınması gereken bir işlem.
+
+Bu mimari hâlâ plan aşamasında. Hiçbiri uygulanmadı; izinleri denetleyecek
+mekanizma da henüz geliştirilmedi.
+
+</Chapter>
+
+<Chapter
+  id="escalation"
+  index="06"
+  title="Dış model desteği"
+  deck="Sistem işleri varsayılan olarak buluta göndermemeli. Uzak modellere yalnızca gerektiğinde ve kontrollü biçimde danışmalı."
+>
+
+Bazı problemler küçük bir yerel modeli aşacak. Bunu yok saymak sistemi
+iyileştirmez. Dolayısıyla bir çıkış yolu olmalı:
+bir soruyu API üzerinden daha güçlü bir harici modele iletebilen denetimli bir
+danışma katmanı; örneğin OpenAI'ın modelleri, Claude ya da Gemini gibi.
+
+Asıl mesele, bu desteğin ne zaman devreye gireceği. Asistan işleri otomatik
+olarak bu servislere göndermemeli. Önce kendi araçlarıyla yerelde denemeli.
+İlerleyemezse daha güçlü bir modelin akıl yürütmesine ihtiyaç duyduğuna karar
+verip yardım isteyebilmeli. Yanıtı aldıktan sonra işe yerelde devam etmeli.
+
+Araştırmak istediğim bir fikir de, gerçekten zor bir problem için birden fazla
+harici modele danışıp geri gelenleri karşılaştırmanın değer taşıyıp taşımadığı.
+Böylece tek bir modele danışmak yerine birkaç modelin yanıtını birlikte
+değerlendirmek mümkün olabilir. Bu, araştırmak istediğim bir fikir; henüz
+geliştirilmiş bir bileşen değil.
+
+Bu yönlendirmenin hiçbiri uygulanmadı. Bir sistemin takıldığına *ne zaman* karar
+vermesi gerektiğini belirlemek, sanırım API çağrısını bağlamaktan daha zor.
+
+</Chapter>
+
+<Chapter
+  id="questions"
+  index="07"
+  title="Mühendislik soruları"
+  deck="Bu soruları geliştirmeye başlamadan önce yazıyorum. Sonuçları hedeflerime göre değerlendirmek, hedefleri sonuçlara uydurmamak istiyorum."
+>
+
+- İyi araçlar ve iyi sistem tasarımı, küçük bir dil modelinin eksiklerini ne kadar telafi edebilir?
+- Hangi görevler gerçekten daha büyük bir uzak model gerektiriyor ve hangileri yalnızca öyle görünüyor?
+- Bir ajan ilerleyemediğine nasıl karar vermeli? Ne zaman dış destek gerektiğini
+  anlamak, desteği istemekten daha zor görünüyor.
+- Yerel dosya ve bilgisayar erişimi, ajana sınırsız kontrol vermeden nasıl faydalı
+  olabilir?
+- Hangi işlemler için açık onayım istenmeli? Hangi onaylar sürekli karşıma
+  çıkarsa bir süre sonra okumadan kabul etmeye başlarım?
+- Proje bağlamımın ne kadarı gerçekçi olarak tamamen yerel kalabilir?
+- Model yeteneği, gecikme, güç tüketimi ve donanım maliyeti arasındaki pratik denge nedir?
+- Yerel çıkarım ne zaman gerçekten mantıklı oluyor ve uzak bir model ne zaman
+  sadece daha iyi mühendislik tercihi oluyor?
+
+</Chapter>

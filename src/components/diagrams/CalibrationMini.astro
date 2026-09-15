@@ -1,0 +1,103 @@
+---
+/**
+ * A compact, unframed version of the calibration scale for the project card.
+ * Same idea as the full diagram, reduced to what reads at card size: two
+ * speakers, different absolute values, the same normalised position.
+ */
+import { diagramsFor } from '../../i18n/diagrams';
+
+const t = diagramsFor(Astro.url).calibrationMini;
+
+/* Frequencies are data and stay here; only the names and the legend are copy. */
+const rows = [
+  { name: t.speakerA, baseline: '112 Hz', upperline: '196 Hz' },
+  { name: t.speakerB, baseline: '78 Hz', upperline: '121 Hz' },
+];
+---
+
+<div class="mini" aria-hidden="true">
+  {
+    rows.map((row) => (
+      <div class="mini__row">
+        <span class="mini__name mono">{row.name}</span>
+        <span class="mini__axis">
+          <span class="mini__line" />
+          <span class="mini__cap mini__cap--a" />
+          <span class="mini__cap mini__cap--b" />
+          <span class="mini__marker" />
+        </span>
+        <span class="mini__vals mono">
+          <span>{row.baseline}</span>
+          <span>{row.upperline}</span>
+        </span>
+      </div>
+    ))
+  }
+  <p class="mini__legend mono">{t.legend}</p>
+</div>
+
+<style>
+  .mini {
+    display: grid;
+    gap: var(--space-5);
+    padding: var(--space-6) var(--space-5);
+    background: var(--surface);
+  }
+
+  .mini__row {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .mini__name {
+    color: var(--text-secondary);
+  }
+
+  .mini__axis {
+    position: relative;
+    display: block;
+    height: 12px;
+  }
+
+  .mini__line {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline: 0;
+    height: 1px;
+    background: var(--text-primary);
+  }
+
+  .mini__cap {
+    position: absolute;
+    inset-block-start: 1px;
+    width: 1px;
+    height: 10px;
+    background: var(--text-primary);
+  }
+
+  .mini__cap--a { inset-inline-start: 0; }
+  .mini__cap--b { inset-inline-end: 0; }
+
+  .mini__marker {
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-start: 62%;
+    width: 8px;
+    height: 8px;
+    margin-inline-start: -4px;
+    background: var(--accent);
+  }
+
+  .mini__vals {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+  }
+
+  .mini__legend {
+    margin: 0;
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--border-hairline);
+    color: var(--text-muted);
+  }
+</style>

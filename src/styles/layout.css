@@ -1,0 +1,130 @@
+/* ---------------------------------------------------------------------------
+   layout.css — containers, the offset editorial grid, section rhythm.
+   design-spec.md §4.
+--------------------------------------------------------------------------- */
+
+@layer layout {
+  .wrap {
+    width: min(100%, var(--w-content));
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .wrap--media {
+    width: min(100%, var(--w-media));
+  }
+
+  .section {
+    padding-block: var(--space-section);
+  }
+
+  .section + .section:not(.contact) {
+    padding-block-start: 0;
+  }
+
+  /* Landscape phones: the hero must not fill two screens. */
+  @media (max-height: 520px) and (orientation: landscape) {
+    .section {
+      padding-block: var(--space-8);
+    }
+  }
+
+  .prose {
+    max-width: var(--w-prose);
+  }
+
+  .text-col {
+    max-width: var(--w-text);
+  }
+
+  .stack > * + * {
+    margin-block-start: var(--flow, var(--space-5));
+  }
+
+  /* --- the offset editorial layout -------------------------------------
+     A left margin holding the sticky chapter rail, then a content column.
+     Prose is capped at the reading measure; anything marked .bleed is
+     allowed to widen past it. Using max-width rather than grid columns
+     means media can break out from any depth — a diagram inside a chapter
+     inside the content column still widens correctly. design-spec.md §4.3.  */
+  .offset-grid {
+    display: grid;
+    /* Do not let a chapter's intrinsic width enlarge the mobile column. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--grid-gap);
+  }
+
+  .offset-content {
+    min-inline-size: 0;
+  }
+
+  @media (width >= 1280px) {
+    .offset-grid {
+      grid-template-columns: 11rem minmax(0, 1fr);
+      column-gap: var(--space-7);
+    }
+  }
+
+  /* Text reads at the prose measure. The chapter itself is left at the full
+     column width, so anything inside it marked .bleed can widen. */
+  .offset-content > :is(.glance, .project__evidence, .next),
+  .offset-content :is(.chapter, .limits) > :is(p, ul, ol, .note, .spec, .code, .table-scroll) {
+    max-width: var(--w-prose);
+  }
+
+  /* Media and diagrams escape the measure and fill the content column. */
+  .offset-content .bleed {
+    max-width: min(var(--w-media), 100%);
+    width: 100%;
+  }
+
+  /* --- reveal system ---------------------------------------------------
+     Content is visible by default. The animation only ever starts it
+     hidden inside a branch that is known to be able to finish it:
+       · browsers with scroll-driven animations do it in pure CSS
+       · everything else waits for reveal.ts to add .reveal-js to <html>
+     If both fail, nothing is hidden. technical-plan.md §7.               */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .reveal {
+        animation: reveal-in linear both;
+        animation-timeline: view();
+        animation-range: entry 8% cover 26%;
+      }
+    }
+
+    @supports not (animation-timeline: view()) {
+      html.reveal-js .reveal {
+        opacity: 0;
+        transform: translateY(16px);
+        transition:
+          opacity var(--dur-slower) var(--ease-out),
+          transform var(--dur-slower) var(--ease-out);
+        transition-delay: var(--reveal-delay, 0ms);
+      }
+
+      html.reveal-js .reveal.is-visible {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  }
+
+  @keyframes reveal-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Long case-study sections below the fold. technical-plan.md §6.2. */
+  .defer-render {
+    content-visibility: auto;
+    /* Reserve height only; a remembered desktop width must not survive resize. */
+    contain-intrinsic-block-size: auto 600px;
+  }
+}
